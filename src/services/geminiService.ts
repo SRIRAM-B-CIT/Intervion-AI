@@ -85,3 +85,46 @@ export async function generateRoundFeedback(roundType: string, performanceData: 
 
   return response.text || "Failed to generate feedback.";
 }
+
+
+export async function generateHRResponse(
+  chatHistory: { role: string; text: string }[],
+): Promise<string> {
+  // Using your exact existing setup
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+
+  // Format the history so the AI understands the back-and-forth
+  const formattedHistory = chatHistory
+    .map(
+      (msg) =>
+        `${msg.role === "interviewer" ? "HR" : "Candidate"}: ${msg.text}`,
+    )
+    .join("\n");
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          parts: [
+            {
+              text: `You are an expert HR Interviewer conducting a behavioral and technical interview.
+              Here is the conversation so far:
+              
+              ${formattedHistory}
+              
+              Based on the candidate's last answer, evaluate what they said and generate your NEXT conversational response or question. 
+              Keep it professional, empathetic, and under 3 sentences. 
+              Do not use prefixes like "HR:" or "Interviewer:" in your response. Just return the spoken text.`,
+            },
+          ],
+        },
+      ],
+    });
+
+    return response.text || "Could you elaborate on that last point?";
+  } catch (error) {
+    console.error("HR Response Generation Failed:", error);
+    return "I'm having a little trouble connecting. Could you repeat that or elaborate on your last point?";
+  }
+}
