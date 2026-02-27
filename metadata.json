@@ -1,0 +1,5 @@
+{
+  "name": "IntervAI - Multimodal AI Interview Platform",
+  "description": "A comprehensive AI-powered interview preparation platform for students and recruitment management for admins.",
+  "requestFramePermissions": ["camera", "microphone"]
+}
