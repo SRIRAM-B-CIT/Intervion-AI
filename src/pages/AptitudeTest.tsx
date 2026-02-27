@@ -34,39 +34,38 @@ export default function AptitudeTest() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Safely find the selected company, or use a default mock configuration if testing without one
-  const selectedCompany = companies.find(c => c.id === currentSession?.companyId) || {
-    workflow: [{ type: 'aptitude', duration: 15, cutoff: 70, config: { questionCount: 10, topics: [] } }]
-  } as any;
+  // Safely find the selected company for display purposes
+  const selectedCompany = companies.find(c => c.id === currentSession?.companyId);
 
   useEffect(() => {
-    // Determine the active source of questions (Use global bank if populated, else use dummy data)
-    let sourceBank = globalAptitudeBank && globalAptitudeBank.length > 0 ? globalAptitudeBank : DUMMY_QUESTIONS;
+    // Prevent infinite loop by only running this setup once when questions array is empty
+    if (questions.length > 0) return;
 
+    let sourceBank = globalAptitudeBank && globalAptitudeBank.length > 0 ? globalAptitudeBank : DUMMY_QUESTIONS;
     let targetCount = 10;
-    let targetDuration = 15; // default 15 minutes
+    let targetDuration = 15; 
     
-    // Attempt to pull config from the session/company workflow
-    if (currentSession && selectedCompany && selectedCompany.workflow) {
-      const round = selectedCompany.workflow[currentSession.currentRoundIndex || 0];
+    // Look up the company inside the effect
+    const company = companies.find(c => c.id === currentSession?.companyId);
+    
+    if (currentSession && company && company.workflow) {
+      const round = company.workflow[currentSession.currentRoundIndex || 0];
       if (round && round.type === 'aptitude') {
         const topics = round.config?.topics || [];
         targetCount = round.config?.questionCount || 10;
         targetDuration = round.duration || 15;
         
         let filtered = sourceBank.filter(q => topics.includes(q.topic));
-        
-        // If topics don't match anything, fall back to the entire source bank
         sourceBank = filtered.length > 0 ? filtered : sourceBank;
       }
     }
 
-    // Shuffle and slice the questions
     const shuffled = [...sourceBank].sort(() => 0.5 - Math.random());
     setQuestions(shuffled.slice(0, targetCount));
     setTimeLeft(targetDuration * 60);
 
-  }, [currentSession, globalAptitudeBank, selectedCompany]);
+  // Used specific primitive dependencies instead of whole objects to prevent re-renders
+  }, [currentSession?.companyId, currentSession?.currentRoundIndex, companies, globalAptitudeBank, questions.length]);
 
   // Timer Logic
   useEffect(() => {
@@ -74,7 +73,7 @@ export default function AptitudeTest() {
       const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
       return () => clearInterval(timer);
     } else if (timeLeft === 0 && questions.length > 0 && !isSubmitting) {
-      handleSubmit(); // Auto-submit when time is up
+      handleSubmit(); 
     }
   }, [timeLeft, questions.length]);
 
@@ -114,8 +113,6 @@ export default function AptitudeTest() {
       const feedback = await generateRoundFeedback('Aptitude Test', performanceData);
       submitRound(score, feedback);
       
-      alert(`Test Completed! You scored ${score}%. Redirecting to Dashboard...`);
-      // Add your navigation logic here if `submitRound` doesn't auto-redirect
     } catch (error) {
       console.error('Aptitude submission failed:', error);
       alert('Failed to submit test. Please try again.');

@@ -13,7 +13,7 @@ import {
   FileText,
   Code,
   MessageSquare,
-  Brain // Added Brain icon for Aptitude Test
+  Brain 
 } from 'lucide-react';
 import { useAuthStore } from '../store/useStore';
 import { useNavigate, useLocation, Outlet, Link } from 'react-router-dom';
@@ -31,13 +31,14 @@ export default function DashboardLayout() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
 
-  // Added Aptitude Test to the student navigation array
+  // Added Group Discussion to the student navigation array
   const studentNav = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Mock Marathon', path: '/mock-marathon', icon: Briefcase },
     { name: 'Resume Analyzer', path: '/resume', icon: FileText },
-    { name: 'Aptitude Test', path: '/aptitude', icon: Brain }, // <-- Added Here
+    { name: 'Aptitude Test', path: '/aptitude', icon: Brain },
     { name: 'Coding Lab', path: '/coding', icon: Code },
+    { name: 'Group Discussion', path: '/group-discussion', icon: Users }, // <-- ADDED HERE
     { name: 'HR Interview', path: '/hr', icon: MessageSquare },
   ];
 
@@ -67,7 +68,7 @@ export default function DashboardLayout() {
             <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold">I</span>
             </div>
-            <span className="font-bold text-xl tracking-tight">IntervAI</span>
+            <span className="font-bold text-xl tracking-tight">Intervion AI</span>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}

@@ -11,6 +11,7 @@ import ResumeAnalyzer from './pages/ResumeAnalyzer';
 import AptitudeTest from './pages/AptitudeTest';
 import CodingLab from './pages/CodingLab';
 import HRInterview from './pages/HRInterview';
+import GroupDiscussion from './pages/GroupDiscussion'; // <-- ADDED IMPORT
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminCMS from './pages/AdminCMS';
 
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/aptitude" element={<AptitudeTest />} />
           <Route path="/coding" element={<CodingLab />} />
           <Route path="/hr" element={<HRInterview />} />
+          <Route path="/group-discussion" element={<GroupDiscussion />} /> {/* <-- ADDED ROUTE */}
         </Route>
 
         {/* Admin Routes */}

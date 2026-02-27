@@ -16,9 +16,10 @@ import {
   Sparkles,
   RefreshCcw,
   Layout,
-  Zap
+  Zap,
+  Users // <-- IMPORTED USERS ICON FOR GD
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion'; // Fixed import
+import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -26,6 +27,7 @@ import ResumeAnalyzer from './ResumeAnalyzer';
 import CodingLab from './CodingLab';
 import HRInterview from './HRInterview';
 import AptitudeTest from './AptitudeTest';
+import GroupDiscussion from './GroupDiscussion'; // <-- IMPORTED GD COMPONENT
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -44,13 +46,10 @@ export default function MockMarathon() {
   );
 
   // --- SMART FEEDBACK RENDERER ---
-  // Safely parses raw JSON from the AI (if any) and formats it into a clean UI.
-  // If it's normal text, it falls back to standard Markdown rendering.
   const renderFeedback = (feedbackRaw: string) => {
     if (!feedbackRaw) return <p>No feedback provided.</p>;
 
     try {
-      // Clean potential markdown code blocks wrapped around the JSON
       const cleanString = feedbackRaw.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(cleanString);
 
@@ -75,7 +74,6 @@ export default function MockMarathon() {
         </div>
       );
     } catch (e) {
-      // If it's NOT JSON (e.g. standard text from HR round), render as normal Markdown
       return (
         <div className="prose prose-zinc max-w-none">
           <ReactMarkdown>{feedbackRaw}</ReactMarkdown>
@@ -173,7 +171,6 @@ export default function MockMarathon() {
             </div>
 
             <div className="bg-zinc-50/80 p-8 rounded-[32px] border border-zinc-100 shadow-inner">
-              {/* Uses the smart parser function defined above */}
               {renderFeedback(currentSession.roundFeedback || '')}
             </div>
 
@@ -249,6 +246,8 @@ export default function MockMarathon() {
       case 'coding': return <CodingLab />;
       case 'hr': return <HRInterview />;
       case 'aptitude': return <AptitudeTest />;
+      case 'gd': return <GroupDiscussion />; // <-- ADDED THIS CASE
+      
       default:
         return (
           <div className="text-center py-20">
@@ -300,10 +299,12 @@ export default function MockMarathon() {
             const isCompleted = currentSession.currentRoundIndex > idx;
             const isActive = currentSession.currentRoundIndex === idx;
             
+            // MAP THE CORRECT ICON FOR THE ROUND TYPE
             const Icon = round.type === 'resume' ? Upload : 
                          round.type === 'aptitude' ? Brain :
                          round.type === 'coding' ? Code :
-                         round.type === 'hr' ? MessageSquare : Layout;
+                         round.type === 'hr' ? MessageSquare : 
+                         round.type === 'gd' ? Users : Layout; // <-- ASSIGNED USERS ICON FOR GD
 
             return (
               <div key={round.id} className="flex flex-col items-center gap-4 bg-[#f8fafc] px-2 md:px-4">

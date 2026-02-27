@@ -10,6 +10,7 @@ export interface InterviewRound {
   config?: {
     topics?: string[];
     questionCount?: number;
+    topic?: string; // <-- ADDED THIS FOR GROUP DISCUSSION
   };
 }
 
@@ -63,7 +64,8 @@ export const useCmsStore = create<CmsState>((set) => ({
         { id: 'r1', type: 'resume', duration: 5 },
         { id: 'r2', type: 'aptitude', duration: 30, cutoff: 70, config: { topics: ['Logical Reasoning'], questionCount: 10 } },
         { id: 'r3', type: 'coding', duration: 60, cutoff: 60, config: { questionCount: 2 } },
-        { id: 'r4', type: 'hr', duration: 20 }
+        { id: 'r4', type: 'gd', duration: 20, config: { topic: 'AI will replace Frontend Architects in 5 years.' } }, // Added a demo GD round
+        { id: 'r5', type: 'hr', duration: 20 }
       ]
     },
     { 
@@ -73,8 +75,8 @@ export const useCmsStore = create<CmsState>((set) => ({
       description: 'Software, services, and hardware giant.', 
       targetRole: 'Fullstack Engineer',
       workflow: [
-        { id: 'r5', type: 'aptitude', duration: 45, cutoff: 75, config: { topics: ['Quant'], questionCount: 15 } },
-        { id: 'r6', type: 'coding', duration: 90, cutoff: 70, config: { questionCount: 3 } }
+        { id: 'r6', type: 'aptitude', duration: 45, cutoff: 75, config: { topics: ['Quant'], questionCount: 15 } },
+        { id: 'r7', type: 'coding', duration: 90, cutoff: 70, config: { questionCount: 3 } }
       ]
     },
   ],
