@@ -12,11 +12,12 @@ import {
   Briefcase,
   FileText,
   Code,
-  MessageSquare
+  MessageSquare,
+  Brain // Added Brain icon for Aptitude Test
 } from 'lucide-react';
 import { useAuthStore } from '../store/useStore';
 import { useNavigate, useLocation, Outlet, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -30,10 +31,12 @@ export default function DashboardLayout() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
 
+  // Added Aptitude Test to the student navigation array
   const studentNav = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Mock Marathon', path: '/mock-marathon', icon: Briefcase },
     { name: 'Resume Analyzer', path: '/resume', icon: FileText },
+    { name: 'Aptitude Test', path: '/aptitude', icon: Brain }, // <-- Added Here
     { name: 'Coding Lab', path: '/coding', icon: Code },
     { name: 'HR Interview', path: '/hr', icon: MessageSquare },
   ];
@@ -57,7 +60,7 @@ export default function DashboardLayout() {
       <motion.aside 
         initial={false}
         animate={{ width: isSidebarOpen ? 280 : 80 }}
-        className="bg-white border-right border-zinc-200 flex flex-col sticky top-0 h-screen z-30"
+        className="bg-white border-r border-zinc-200 flex flex-col sticky top-0 h-screen z-30"
       >
         <div className="p-6 flex items-center justify-between">
           <div className={cn("flex items-center gap-3", !isSidebarOpen && "hidden")}>
