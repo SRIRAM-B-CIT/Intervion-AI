@@ -3,18 +3,25 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { 
-  Play, Terminal, CheckCircle2, AlertCircle, Code2, Send, Loader2, Target 
+  Play, Terminal, CheckCircle2, AlertCircle, Code2, Send, Loader2, Target, Info 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../store/useStore';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useNavigate } from 'react-router-dom';
 
+// ==========================================
+// PASTE YOUR JDOODLE CREDENTIALS HERE:
+// ==========================================
+const JDOODLE_CLIENT_ID ="8bdf7b3ebbd45a90fa5113276a2b673c";
+const JDOODLE_CLIENT_SECRET ="f209b4f9323b4efbf328daf44b20216f870ee8563593736f1755f84e8b67b605";
+
+// Updated to use JDoodle Language Codes and Version Indexes
 const LANGUAGES = {
-  javascript: { label: 'JavaScript', id: 'javascript' },
-  python: { label: 'Python', id: 'python' },
-  cpp: { label: 'C++', id: 'cpp' },
-  java: { label: 'Java', id: 'java' }
+  javascript: { label: 'JavaScript', id: 'javascript', jdoodleLang: 'nodejs', versionIndex: '4' }, // Node.js 17
+  python: { label: 'Python', id: 'python', jdoodleLang: 'python3', versionIndex: '4' },        // Python 3.9
+  cpp: { label: 'C++', id: 'cpp', jdoodleLang: 'cpp17', versionIndex: '1' },                   // GCC 11
+  java: { label: 'Java', id: 'java', jdoodleLang: 'java', versionIndex: '4' }                  // JDK 17
 };
 
 export default function CodingLab() {
@@ -26,150 +33,160 @@ export default function CodingLab() {
   const [output, setOutput] = useState([{ type: 'info', text: 'Console initialized. Write code and click "Run Code".' }]);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const consoleEndRef = useRef<HTMLDivElement>(null);
   
-  // FIX 1: Provide 'null' as the initial value to fix the TypeScript error
-  const blurHandlerRef = useRef<(() => void) | null>(null);
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  const consoleEndRef = useRef<HTMLDivElement>(null);
+  const ignoreBlurRef = useRef(false);
 
-  const genAI = new GoogleGenerativeAI("AIzaSyBnISk1eDOuDPGJmNn9QYwx3SwVMBdv3y8");
+  // Gemini API Key for Submission/Evaluation
+  const genAI = new GoogleGenerativeAI("AIzaSyAeQxJj3qpytra3MnPvO1LNjZ6qx3C7Clk");
 
   useEffect(() => {
     consoleEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [output]);
 
-  // Anti-cheating & Proctored Logic
+  // Anti-cheating Logic
   useEffect(() => {
     const handleBlur = () => {
+      if (ignoreBlurRef.current) return;
+
       if (currentSession && !currentSession.isRoundSubmitted) {
         addWarning();
         alert(`Warning: Window focus lost! Tab switching is prohibited. (${currentSession.warnings + 1}/3)`);
       }
     };
     
-    blurHandlerRef.current = handleBlur;
     window.addEventListener('blur', handleBlur);
-    
     return () => window.removeEventListener('blur', handleBlur);
   }, [currentSession, addWarning]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'v' || e.key === 'x')) {
       e.preventDefault();
-      alert('Copy/Paste/Cut is disabled for this assessment.');
+      setNotification({ message: 'Copy/Paste/Cut is disabled for this assessment.', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
     }
   }, []);
 
+  // --- REAL COMPILER EXECUTION (Using JDoodle API) ---
   const handleRun = async () => {
     if (!code.trim()) {
         setOutput(prev => [...prev, { type: 'error', text: 'Error: Code editor is empty.' }]);
         return;
     }
 
+    if (JDOODLE_CLIENT_ID === "8bdf7b3ebbd45a90fa5113276a2b673c") {
+        setOutput(prev => [...prev, { type: 'error', text: 'Developer Error: Please add your JDoodle Client ID and Secret to the code.' }]);
+        return;
+    }
+
     setIsRunning(true);
-    setOutput(prev => [...prev, { type: 'info', text: `AI Judge: Compiling and running ${LANGUAGES[language].label}...` }]);
+    setOutput(prev => [...prev, { type: 'info', text: `Compiling and executing ${LANGUAGES[language].label} code...` }]);
     
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const selectedLang = LANGUAGES[language];
       
-      const prompt = `
-        Act as a code execution engine and test judge.
-        Problem: Two Sum (Find indices of two numbers that add up to target).
-        Language: ${LANGUAGES[language].label}
-        Code: ${code}
+      // We use corsproxy.io to bypass browser CORS restrictions for the JDoodle API
+      const proxyUrl = 'https://corsproxy.io/?';
+      const targetUrl = 'https://api.jdoodle.com/v1/execute';
 
-        Test Case 1: nums = [2,7,11,15], target = 9 (Expected: [0,1])
-        Test Case 2: nums = [3,2,4], target = 6 (Expected: [1,2])
+      const response = await fetch(proxyUrl + encodeURIComponent(targetUrl), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientId: JDOODLE_CLIENT_ID,
+          clientSecret: JDOODLE_CLIENT_SECRET,
+          script: code,
+          language: selectedLang.jdoodleLang,
+          versionIndex: selectedLang.versionIndex
+        })
+      });
 
-        Analyze if the code is syntactically correct and passes both cases.
-        Return ONLY a JSON array like this:
-        [
-          {"case": 1, "passed": true/false, "output": "actual_output", "error": "compiler_error_if_any"},
-          {"case": 2, "passed": true/false, "output": "actual_output", "error": ""}
-        ]
-      `;
+      if (!response.ok) {
+        throw new Error(`Compiler API returned status: ${response.status}`);
+      }
 
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text();
-      const cleanJson = responseText.replace(/```json|```/g, "").trim();
-      const results = JSON.parse(cleanJson);
+      const data = await response.json();
 
-      const newOutputs = results.map((res: any) => ({
-        type: res.passed ? 'success' : 'error',
-        text: `Test Case ${res.case}: ${res.passed ? 'Passed ✅' : 'Failed ❌'} (Result: ${res.output}) ${res.error ? ' - ' + res.error : ''}`
-      }));
+      // JDoodle returns 200 statusCode inside the JSON body on success
+      if (data.statusCode === 200) {
+        // JDoodle combines stdout and stderr into the "output" field
+        const isError = data.output.toLowerCase().includes("error") || data.output.toLowerCase().includes("exception");
+        
+        setOutput(prev => [...prev, { 
+          type: isError ? 'error' : 'success', 
+          text: `Output:\n${data.output}\n\n[Memory: ${data.memory} KB | CPU: ${data.cpuTime}s]` 
+        }]);
+      } else {
+        // API Level Error (e.g. Invalid tokens, daily limit reached)
+        setOutput(prev => [...prev, { type: 'error', text: `JDoodle Error: ${data.error || 'Daily limit reached or invalid credentials.'}` }]);
+      }
 
-      setOutput(prev => [...prev, ...newOutputs]);
-    } catch (error) {
-      setOutput(prev => [...prev, { type: 'error', text: 'AI Judge Error: Failed to evaluate code.' }]);
+    } catch (error: any) {
+      console.error("Execution Error:", error);
+      setOutput(prev => [...prev, { type: 'error', text: `Execution Server Error: Failed to connect to proxy or compiler.` }]);
     } finally {
       setIsRunning(false);
     }
   };
 
+  // --- AI JUDGE FOR SUBMISSION ---
   const handleSubmit = async () => {
-    if (!code.trim()) return alert("Editor is empty. Please write some code before submitting.");
+    if (!code.trim()) {
+      setNotification({ message: 'Editor is empty. Please write some code before submitting.', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
     
     setIsSubmitting(true);
-    
-    if (blurHandlerRef.current) {
-        window.removeEventListener('blur', blurHandlerRef.current);
-    }
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
       const prompt = `
-        Evaluate this ${LANGUAGES[language].label} code for the "Two Sum" problem.
-        User Code: ${code}
-        Warnings Issued: ${currentSession?.warnings || 0}
-        
+        You are a strict technical interviewer. Evaluate this ${LANGUAGES[language].label} code for the "Two Sum" problem.
+        User Code: 
+        ${code}
+
         Return ONLY a raw JSON object with NO markdown formatting, containing these exact keys:
         {
-          "score": number (0-100),
-          "feedback": "string explaining what is right or wrong",
-          "complexity": "string analyzing time/space complexity"
+          "score": number (0-100, judge correctness, edge cases, and efficiency),
+          "feedback": "string explaining what is right or wrong logically",
+          "complexity": "string analyzing time/space complexity (e.g. O(n^2) vs O(n))"
         }
       `;
 
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
-      
-      // Clean up markdown block if Gemini adds it
       const cleanJson = responseText.replace(/```json|```/g, "").trim();
       
       let formattedFeedback = "";
-      let aiScore = 0;
+      let finalScore = 0;
 
-      // FIX 2: Parse the JSON and format it into clean text
       try {
         const parsedData = JSON.parse(cleanJson);
         formattedFeedback = `${parsedData.feedback}\n\nComplexity Analysis: ${parsedData.complexity}`;
-        aiScore = parsedData.score;
+        finalScore = parsedData.score;
       } catch (parseError) {
-        console.error("Failed to parse JSON from AI", responseText);
-        // Fallback if Gemini doesn't format it right
         formattedFeedback = responseText; 
-        aiScore = 50; 
+        finalScore = 50; 
       }
       
-      // Factor in passing test cases from the console output
-      const passedTests = output.filter(o => o.text.includes('Passed ✅')).length;
-      
-      // If code failed tests, penalize the AI's score
-      const finalScore = passedTests === 2 ? aiScore : (passedTests === 1 ? Math.min(aiScore, 50) : 0);
-
       submitRound(finalScore, formattedFeedback); 
       
-      alert(`AI Evaluation Complete! Score: ${finalScore}%. Proceeding to the next round...`);
-      navigate('/mock-marathon');
+      ignoreBlurRef.current = true;
+      setNotification({ message: `AI Evaluation Complete! Score: ${finalScore}%. Proceeding...`, type: 'success' });
+      
+      setTimeout(() => {
+        navigate('/mock-marathon');
+      }, 1500);
 
     } catch (error) {
       console.error('AI Processing Failed:', error);
-      alert('AI analysis service is temporarily unavailable. Please try submitting again.');
-      
-      if (blurHandlerRef.current) {
-          window.addEventListener('blur', blurHandlerRef.current);
-      }
+      setNotification({ message: 'AI analysis service is temporarily unavailable. Please try again.', type: 'error' });
+      setTimeout(() => setNotification(null), 4000);
     } finally {
       setIsSubmitting(false);
     }
@@ -177,10 +194,30 @@ export default function CodingLab() {
 
   return (
     <div 
-      className="h-[calc(100vh-140px)] flex flex-col gap-4 p-4 bg-[#f8fafc]"
+      className="h-[calc(100vh-140px)] flex flex-col gap-4 p-4 bg-[#f8fafc] relative"
       onKeyDown={handleKeyDown}
-      onContextMenu={(e) => { e.preventDefault(); alert('Right-click disabled.'); }}
+      onContextMenu={(e) => { 
+        e.preventDefault(); 
+        setNotification({ message: 'Right-click is disabled.', type: 'error' });
+        setTimeout(() => setNotification(null), 3000);
+      }}
     >
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`absolute top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 font-bold text-sm ${
+              notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
+            }`}
+          >
+            {notification.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {notification.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center justify-between bg-white p-4 rounded-[24px] border border-zinc-200 shadow-sm shrink-0">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
@@ -201,7 +238,7 @@ export default function CodingLab() {
             {(Object.keys(LANGUAGES) as Array<keyof typeof LANGUAGES>).map((lang) => (
               <button
                 key={lang}
-                onClick={() => setLanguage(lang)}
+                onClick={() => setLanguage(lang as any)}
                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
                   language === lang ? 'bg-white text-indigo-600 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'
                 }`}
@@ -244,6 +281,15 @@ export default function CodingLab() {
               Input: [2, 7, 11, 15], Target: 9 <br/>
               Output: [0, 1]
             </div>
+            
+            <div className="mt-8 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+              <p className="text-xs text-indigo-700 font-bold flex items-center gap-2">
+                <Info size={14}/> Test Your Code
+              </p>
+              <p className="text-[11px] text-indigo-600 mt-2">
+                Use <code className="bg-white px-1 rounded">console.log()</code> or <code className="bg-white px-1 rounded">print()</code> in your code to see the output in the console below when you click "Run Code".
+              </p>
+            </div>
           </div>
         </div>
 
@@ -267,20 +313,18 @@ export default function CodingLab() {
               <button onClick={() => setOutput([])} className="text-[9px] font-black text-zinc-400 hover:text-zinc-900">CLEAR</button>
             </div>
             
-            <div className="flex-1 p-6 font-mono text-[13px] overflow-y-auto space-y-3 bg-white">
+            <div className="flex-1 p-6 font-mono text-[13px] overflow-y-auto space-y-3 bg-zinc-900 text-zinc-300">
               {output.map((line, i) => (
                 <motion.div 
                     initial={{ opacity: 0, x: -10 }} 
                     animate={{ opacity: 1, x: 0 }} 
                     key={i} 
                     className={`flex items-start gap-3 p-2 rounded-lg ${
-                        line.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 
-                        line.type === 'error' ? 'bg-red-50 text-red-700' : 'text-zinc-500'
+                        line.type === 'success' ? 'text-emerald-400' : 
+                        line.type === 'error' ? 'text-red-400' : 'text-blue-400'
                     }`}
                 >
-                  {line.type === 'success' ? <CheckCircle2 size={16} className="shrink-0 mt-0.5" /> : 
-                   line.type === 'error' ? <AlertCircle size={16} className="shrink-0 mt-0.5" /> : null}
-                  <span className="font-bold">{line.text}</span>
+                  <span className="font-medium whitespace-pre-wrap">{line.text}</span>
                 </motion.div>
               ))}
               <div ref={consoleEndRef} />

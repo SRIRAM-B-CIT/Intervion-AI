@@ -44,7 +44,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-emerald-500 mb-8 shadow-2xl shadow-emerald-500/20">
             <Sparkles className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">IntervAI</h1>
+          <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">Intervion AI</h1>
           <p className="text-zinc-400 text-lg max-w-md mx-auto leading-relaxed">
             The ultimate multimodal AI platform to master your interview journey. 
             From resume analysis to live HR simulations.

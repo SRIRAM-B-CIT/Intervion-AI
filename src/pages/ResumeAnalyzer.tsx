@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useRef } from 'react';
 import { 
   FileText, 
@@ -15,7 +17,7 @@ import {
   Sparkles,
   Send
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeResume, generateRoundFeedback } from '../services/geminiService';
 import { useAppStore, ResumeAnalysis } from '../store/useStore';
 
@@ -88,7 +90,7 @@ export default function ResumeAnalyzer() {
       <div className="text-center space-y-2">
         <h1 className="text-4xl font-bold text-zinc-900 tracking-tight">AI Resume Intelligence</h1>
         <p className="text-zinc-500 max-w-2xl mx-auto">
-          Our advanced Gemini 2.5 engine analyzes your resume against industry standards and ATS algorithms.
+          Our advanced Resume AI engine analyzes your resume against industry standards and ATS algorithms.
         </p>
       </div>
 
@@ -104,7 +106,7 @@ export default function ResumeAnalyzer() {
           <div className="space-y-2">
             <h3 className="text-2xl font-bold text-zinc-900">Upload your professional resume</h3>
             <p className="text-zinc-500 max-w-sm mx-auto">
-              Supports PDF, DOCX, and Images. Your data is processed securely by Google Gemini.
+              Supports PDF, DOCX, and Images. Your data is processed securely by our Resume AI.
             </p>
           </div>
           
@@ -145,7 +147,7 @@ export default function ResumeAnalyzer() {
             </div>
           </div>
           <div className="space-y-2">
-            <h3 className="text-2xl font-bold text-zinc-900">Gemini is Analyzing...</h3>
+            <h3 className="text-2xl font-bold text-zinc-900">Analyzing Resume...</h3>
             <p className="text-zinc-500">Extracting semantic meaning and calculating ATS compatibility.</p>
           </div>
           <div className="max-w-md mx-auto h-2 bg-zinc-100 rounded-full overflow-hidden">
@@ -302,4 +304,3 @@ export default function ResumeAnalyzer() {
     </div>
   );
 }
-
