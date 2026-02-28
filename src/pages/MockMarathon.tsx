@@ -17,7 +17,9 @@ import {
   RefreshCcw,
   Layout,
   Zap,
-  Users // <-- IMPORTED USERS ICON FOR GD
+  Users,
+  Code2, 
+  AlertCircle // <-- Added missing icons here
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
@@ -27,12 +29,133 @@ import ResumeAnalyzer from './ResumeAnalyzer';
 import CodingLab from './CodingLab';
 import HRInterview from './HRInterview';
 import AptitudeTest from './AptitudeTest';
-import GroupDiscussion from './GroupDiscussion'; // <-- IMPORTED GD COMPONENT
+import GroupDiscussion from './GroupDiscussion';
+
+// ==========================================
+// BEAUTIFUL FEEDBACK COMPONENT
+// ==========================================
+const BeautifulFeedback = ({ rawText }: { rawText: string }) => {
+  if (!rawText) return null;
+
+  // Split feedback into blocks (This handles the "---" separation between Coding Lab questions)
+  const blocks = rawText.split('---').filter(b => b.trim() !== '');
+
+  // Safe bold text formatter
+  const formatBoldText = (text: string) => {
+    const parts = text.split(/\*\*(.*?)\*\*/g);
+    return parts.map((part, i) => 
+      i % 2 === 1 ? <strong key={i} className="font-black text-inherit">{part}</strong> : <span key={i}>{part}</span>
+    );
+  };
+
+  return (
+    <div className="space-y-8 w-full text-left mt-6">
+      {blocks.map((block, index) => {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l !== '');
+        
+        let title = '';
+        let subtitle = '';
+        let didSection: string[] = [];
+        let expectedSection: string[] = [];
+        let currentMode: 'did' | 'expected' | 'intro' = 'intro';
+
+        lines.forEach(line => {
+          // Identify headers
+          if (line.startsWith('### ')) {
+            title = line.replace('### ', '');
+            return;
+          }
+          if (line.startsWith('**Score:')) {
+            subtitle = line.replace(/\*\*/g, '');
+            return;
+          }
+          
+          if (line.toLowerCase().includes('what you did')) {
+            currentMode = 'did';
+            return;
+          }
+          if (line.toLowerCase().includes('what is expected')) {
+            currentMode = 'expected';
+            return;
+          }
+
+          // Clean up markdown bullet points
+          const cleanLine = line.replace(/^[-*]\s*/, '');
+
+          if (currentMode === 'did') didSection.push(cleanLine);
+          else if (currentMode === 'expected') expectedSection.push(cleanLine);
+          else if (!title && !line.includes('What You Did')) {
+            title = cleanLine; 
+          }
+        });
+
+        return (
+          <div key={index} className="bg-white rounded-[32px] border border-zinc-200 shadow-sm overflow-hidden">
+            
+            {/* Header (Title & Score) */}
+            {(title || subtitle) && (
+              <div className="bg-zinc-50 border-b border-zinc-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h4 className="font-black text-zinc-900 text-lg flex items-center gap-3">
+                  <Code2 className="text-indigo-500" size={24} />
+                  {title || `Review Section ${index + 1}`}
+                </h4>
+                {subtitle && (
+                  <span className="bg-zinc-900 text-white px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase shadow-sm">
+                    {subtitle}
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="p-6 md:p-8 space-y-6">
+              {/* RED BOX: Mistakes & Observations */}
+              {didSection.length > 0 && (
+                <div className="bg-red-50 border border-red-100 rounded-[24px] p-6">
+                  <h5 className="text-red-600 font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+                    <AlertCircle size={16} /> What You Did 
+                  </h5>
+                  <ul className="space-y-3">
+                    {didSection.map((point, i) => (
+                      <li key={i} className="text-sm text-red-900 flex items-start gap-3 leading-relaxed font-medium">
+                        <span className="text-red-400 mt-0.5 shrink-0">•</span>
+                        <span>{formatBoldText(point)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* GREEN BOX: Ideal Approach */}
+              {expectedSection.length > 0 && (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-[24px] p-6">
+                  <h5 className="text-emerald-600 font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+                    <CheckCircle2 size={16} /> What Is Expected
+                  </h5>
+                  <ul className="space-y-3">
+                    {expectedSection.map((point, i) => (
+                      <li key={i} className="text-sm text-emerald-900 flex items-start gap-3 leading-relaxed font-medium">
+                        <span className="text-emerald-400 mt-0.5 shrink-0">•</span>
+                        <span>{formatBoldText(point)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// ==========================================
+// MAIN MOCK MARATHON COMPONENT
+// ==========================================
 export default function MockMarathon() {
   const { companies } = useCmsStore();
   const { currentSession, startSession, nextRound, viewFeedback, resetSession } = useAppStore();
@@ -44,43 +167,6 @@ export default function MockMarathon() {
   const filteredCompanies = companies.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // --- SMART FEEDBACK RENDERER ---
-  const renderFeedback = (feedbackRaw: string) => {
-    if (!feedbackRaw) return <p>No feedback provided.</p>;
-
-    try {
-      const cleanString = feedbackRaw.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(cleanString);
-
-      return (
-        <div className="space-y-6">
-          {parsed.feedback && (
-            <div>
-              <h4 className="text-sm font-black text-zinc-900 uppercase tracking-widest flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-emerald-500" /> Evaluation
-              </h4>
-              <p className="text-zinc-600 leading-relaxed bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">{parsed.feedback}</p>
-            </div>
-          )}
-          {parsed.complexity && (
-            <div>
-              <h4 className="text-sm font-black text-zinc-900 uppercase tracking-widest flex items-center gap-2 mb-2">
-                <Zap className="w-4 h-4 text-emerald-500" /> Complexity Analysis
-              </h4>
-              <p className="text-zinc-600 leading-relaxed font-mono text-sm bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">{parsed.complexity}</p>
-            </div>
-          )}
-        </div>
-      );
-    } catch (e) {
-      return (
-        <div className="prose prose-zinc max-w-none">
-          <ReactMarkdown>{feedbackRaw}</ReactMarkdown>
-        </div>
-      );
-    }
-  };
 
   if (!currentSession) {
     return (
@@ -170,8 +256,9 @@ export default function MockMarathon() {
               </div>
             </div>
 
+            {/* This is where the Beautiful Feedback Component is used */}
             <div className="bg-zinc-50/80 p-8 rounded-[32px] border border-zinc-100 shadow-inner">
-              {renderFeedback(currentSession.roundFeedback || '')}
+              <BeautifulFeedback rawText={currentSession.roundFeedback || ''} />
             </div>
 
             <button 
@@ -246,7 +333,7 @@ export default function MockMarathon() {
       case 'coding': return <CodingLab />;
       case 'hr': return <HRInterview />;
       case 'aptitude': return <AptitudeTest />;
-      case 'gd': return <GroupDiscussion />; // <-- ADDED THIS CASE
+      case 'gd': return <GroupDiscussion />; 
       
       default:
         return (
@@ -299,12 +386,11 @@ export default function MockMarathon() {
             const isCompleted = currentSession.currentRoundIndex > idx;
             const isActive = currentSession.currentRoundIndex === idx;
             
-            // MAP THE CORRECT ICON FOR THE ROUND TYPE
             const Icon = round.type === 'resume' ? Upload : 
                          round.type === 'aptitude' ? Brain :
                          round.type === 'coding' ? Code :
                          round.type === 'hr' ? MessageSquare : 
-                         round.type === 'gd' ? Users : Layout; // <-- ASSIGNED USERS ICON FOR GD
+                         round.type === 'gd' ? Users : Layout; 
 
             return (
               <div key={round.id} className="flex flex-col items-center gap-4 bg-[#f8fafc] px-2 md:px-4">
