@@ -87,7 +87,7 @@ export default function MockMarathon() {
       <div className="max-w-6xl mx-auto space-y-10">
         <div className="text-center">
           <h1 className="text-4xl font-black text-zinc-900 tracking-tight">Select Your Target Company</h1>
-          <p className="text-zinc-500 mt-2 font-medium">Choose a company to start your personalized Mock Marathon.</p>
+          <p className="text-zinc-500 mt-2 font-medium">Choose a company to start your personalized Interview Marathon.</p>
         </div>
 
         <div className="space-y-6">

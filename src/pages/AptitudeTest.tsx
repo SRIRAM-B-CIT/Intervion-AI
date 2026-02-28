@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Brain, Clock, ChevronRight, ChevronLeft, CheckCircle2, 
-  AlertCircle, Loader2, Timer, Target, Info
+  AlertCircle, Loader2, Timer, Target, Info, XCircle, Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCmsStore, AptitudeQuestion } from '../store/useCmsStore';
 import { useAppStore } from '../store/useStore';
-import { generateRoundFeedback } from '../services/geminiService';
+import { useNavigate } from 'react-router-dom';
 
 // --- Fallback Dummy Data ---
 const DUMMY_QUESTIONS: AptitudeQuestion[] = [
@@ -27,25 +27,27 @@ const DUMMY_QUESTIONS: AptitudeQuestion[] = [
 export default function AptitudeTest() {
   const { globalAptitudeBank, companies } = useCmsStore();
   const { currentSession, submitRound } = useAppStore();
+  const navigate = useNavigate();
   
   const [questions, setQuestions] = useState<AptitudeQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState(0);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+  const [finalScore, setFinalScore] = useState({ score: 0, correct: 0 });
 
-  // Safely find the selected company for display purposes
   const selectedCompany = companies.find(c => c.id === currentSession?.companyId);
+  const targetCutoff = selectedCompany?.workflow?.[currentSession?.currentRoundIndex || 0]?.cutoff || 70;
 
   useEffect(() => {
-    // Prevent infinite loop by only running this setup once when questions array is empty
     if (questions.length > 0) return;
 
     let sourceBank = globalAptitudeBank && globalAptitudeBank.length > 0 ? globalAptitudeBank : DUMMY_QUESTIONS;
     let targetCount = 10;
     let targetDuration = 15; 
     
-    // Look up the company inside the effect
     const company = companies.find(c => c.id === currentSession?.companyId);
     
     if (currentSession && company && company.workflow) {
@@ -64,18 +66,17 @@ export default function AptitudeTest() {
     setQuestions(shuffled.slice(0, targetCount));
     setTimeLeft(targetDuration * 60);
 
-  // Used specific primitive dependencies instead of whole objects to prevent re-renders
   }, [currentSession?.companyId, currentSession?.currentRoundIndex, companies, globalAptitudeBank, questions.length]);
 
   // Timer Logic
   useEffect(() => {
-    if (timeLeft > 0 && questions.length > 0) {
+    if (timeLeft > 0 && questions.length > 0 && !isFinished) {
       const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
       return () => clearInterval(timer);
-    } else if (timeLeft === 0 && questions.length > 0 && !isSubmitting) {
+    } else if (timeLeft === 0 && questions.length > 0 && !isSubmitting && !isFinished) {
       handleSubmit(); 
     }
-  }, [timeLeft, questions.length]);
+  }, [timeLeft, questions.length, isFinished, isSubmitting]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -100,19 +101,13 @@ export default function AptitudeTest() {
       });
 
       const score = Math.round((correctCount / questions.length) * 100);
-      const totalDuration = selectedCompany?.workflow?.[currentSession?.currentRoundIndex || 0]?.duration || 15;
+      setFinalScore({ score, correct: correctCount });
       
-      const performanceData = {
-        totalQuestions: questions.length,
-        correctAnswers: correctCount,
-        score,
-        timeTaken: formatTime((totalDuration * 60) - timeLeft),
-        topics: Array.from(new Set(questions.map(q => q.topic)))
-      };
-
-      const feedback = await generateRoundFeedback('Aptitude Test', performanceData);
-      submitRound(score, feedback);
+      // Submit score to global store but NO AI feedback text
+      const genericFeedback = `Aptitude Test Completed. Score: ${score}%. Passed: ${score >= targetCutoff}`;
+      submitRound(score, genericFeedback);
       
+      setIsFinished(true);
     } catch (error) {
       console.error('Aptitude submission failed:', error);
       alert('Failed to submit test. Please try again.');
@@ -131,6 +126,100 @@ export default function AptitudeTest() {
     );
   }
 
+  // ==========================================
+  // REVIEW SCORECARD VIEW (AFTER SUBMISSION)
+  // ==========================================
+  if (isFinished) {
+    const passed = finalScore.score >= targetCutoff;
+
+    return (
+      <div className="max-w-4xl mx-auto space-y-8 p-4">
+        {/* Score Header */}
+        <div className="bg-white p-10 rounded-[40px] border border-zinc-200 shadow-sm text-center">
+          <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center mb-6 border-4 ${passed ? 'bg-emerald-50 border-emerald-100 text-emerald-500' : 'bg-red-50 border-red-100 text-red-500'}`}>
+            <Trophy size={40} />
+          </div>
+          <h2 className="text-4xl font-black text-zinc-900 tracking-tight mb-2">Test Completed</h2>
+          <p className="text-zinc-500 font-medium mb-8">Here is the review of your answers.</p>
+          
+          <div className="flex items-center justify-center gap-12">
+            <div className="text-center">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Final Score</p>
+              <p className={`text-5xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{finalScore.score}%</p>
+            </div>
+            <div className="w-px h-16 bg-zinc-200" />
+            <div className="text-center">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Accuracy</p>
+              <p className="text-3xl font-black text-zinc-900">{finalScore.correct} <span className="text-lg text-zinc-400">/ {questions.length}</span></p>
+            </div>
+            <div className="w-px h-16 bg-zinc-200" />
+            <div className="text-center">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Status</p>
+              <p className={`text-2xl font-black uppercase tracking-widest ${passed ? 'text-emerald-500' : 'text-red-500'}`}>
+                {passed ? 'Passed' : 'Failed'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Detailed Answer Review */}
+        <div className="space-y-4">
+          <h3 className="text-xl font-black text-zinc-900 tracking-tight pl-2">Answer Review</h3>
+          {questions.map((q, idx) => {
+            const userAnswer = answers[q.id];
+            const isCorrect = userAnswer === q.answer;
+            const isUnanswered = !userAnswer;
+
+            return (
+              <div key={q.id} className="bg-white p-6 rounded-[24px] border border-zinc-200 shadow-sm flex gap-6">
+                <div className="shrink-0 mt-1">
+                  {isCorrect ? (
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                      <CheckCircle2 size={20} />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+                      <XCircle size={20} />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Q{idx + 1} • {q.topic}</span>
+                    <p className="text-zinc-900 font-bold mt-1 leading-relaxed">{q.question}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-100">
+                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Your Answer</span>
+                      <span className={`text-sm font-bold ${isCorrect ? 'text-emerald-600' : isUnanswered ? 'text-zinc-400 italic' : 'text-red-600'}`}>
+                        {isUnanswered ? 'Not Attempted' : userAnswer}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                      <span className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest block mb-1">Correct Answer</span>
+                      <span className="text-sm font-bold text-emerald-700">{q.answer}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <button 
+          onClick={() => navigate('/mock-marathon')}
+          className="w-full bg-zinc-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-zinc-800 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"
+        >
+          Proceed to Next Round <ChevronRight size={18} />
+        </button>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ACTIVE TEST VIEW
+  // ==========================================
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
@@ -251,7 +340,7 @@ export default function AptitudeTest() {
         </div>
         <div className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
           <Target className="w-4 h-4 text-emerald-500" />
-          Target Cutoff: {selectedCompany?.workflow?.[currentSession?.currentRoundIndex || 0]?.cutoff || 70}%
+          Target Cutoff: {targetCutoff}%
         </div>
       </div>
     </div>

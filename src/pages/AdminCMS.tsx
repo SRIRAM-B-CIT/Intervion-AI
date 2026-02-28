@@ -23,6 +23,7 @@ import {
   Target,
   GripVertical,
   Loader2,
+  Database, // <-- Added Database icon
 } from "lucide-react";
 import {
   useCmsStore,
@@ -70,6 +71,7 @@ export default function AdminCMS() {
   });
 
   const [isAddingCoding, setIsAddingCoding] = useState(false);
+  const [isUploadingCodingCsv, setIsUploadingCodingCsv] = useState(false);
   const [codingForm, setCodingForm] = useState<Omit<CodingQuestion, "id">>({
     companyId: "",
     title: "",
@@ -78,9 +80,10 @@ export default function AdminCMS() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const codingFileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  // --- FETCH QUESTIONS ON LOAD ---
+  // --- FETCH APTITUDE QUESTIONS ON LOAD ---
   useEffect(() => {
     const fetchQuestions = async () => {
       setIsFetchingBank(true);
@@ -113,7 +116,7 @@ export default function AdminCMS() {
     fetchQuestions();
   }, [setGlobalAptitudeBank]);
 
-  // --- ROBUST CSV UPLOAD LOGIC ---
+  // --- APTITUDE CSV UPLOAD LOGIC ---
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -121,10 +124,9 @@ export default function AdminCMS() {
     setIsUploadingCsv(true);
     Papa.parse(file, {
       header: true,
-      skipEmptyLines: "greedy", // Better at ignoring trailing empty rows from Excel
+      skipEmptyLines: "greedy",
       complete: async (results) => {
         try {
-          // Helper to safely find column values even if Excel adds spaces to headers
           const getColValue = (row: any, searchStr: string) => {
             const key = Object.keys(row).find(
               (k) => k.trim().toLowerCase() === searchStr.toLowerCase(),
@@ -142,7 +144,6 @@ export default function AdminCMS() {
               const answer = getColValue(row, "answer");
               const topic = getColValue(row, "topic") || "General Aptitude";
 
-              // Skip row if there is no question text
               if (!question) return null;
 
               return {
@@ -154,15 +155,14 @@ export default function AdminCMS() {
                 topic: topic.trim(),
               };
             })
-            .filter(Boolean); // Filter out the nulls
+            .filter(Boolean);
 
           if (formattedData.length === 0) {
             throw new Error(
-              "Could not find valid 'Question' columns. Make sure your headers are exactly: Question, Option A, Option B, Option C, Option D, Answer, Topic",
+              "Could not find valid 'Question' columns. Make sure your headers are correct.",
             );
           }
 
-          // Insert into Supabase
           const { data, error } = await supabase
             .from("aptitude_questions")
             .insert(formattedData)
@@ -170,7 +170,6 @@ export default function AdminCMS() {
 
           if (error) throw error;
 
-          // Map back to UI
           const dbQuestions: AptitudeQuestion[] = data.map((row: any) => ({
             id: row.id,
             qn: row.id,
@@ -181,9 +180,7 @@ export default function AdminCMS() {
           }));
 
           setGlobalAptitudeBank([...dbQuestions, ...globalAptitudeBank]);
-          alert(
-            `✅ Successfully imported ${data.length} questions to database!`,
-          );
+          alert(`✅ Successfully imported ${data.length} questions to database!`);
 
           if (fileInputRef.current) fileInputRef.current.value = "";
         } catch (error: any) {
@@ -197,6 +194,90 @@ export default function AdminCMS() {
         console.error("CSV Parsing Error:", error);
         alert("Error parsing CSV. Please check the file format.");
         setIsUploadingCsv(false);
+      },
+    });
+  };
+
+  // --- CODING CSV UPLOAD LOGIC (SUPABASE) ---
+  const handleCodingCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!codingForm.companyId) {
+      alert("Error: Company ID is missing.");
+      return;
+    }
+
+    setIsUploadingCodingCsv(true);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: "greedy",
+      complete: async (results) => {
+        try {
+          const getColValue = (row: any, searchStr: string) => {
+            const key = Object.keys(row).find(
+              (k) => k.trim().toLowerCase() === searchStr.toLowerCase(),
+            );
+            return key ? row[key] : null;
+          };
+
+          const newQuestions = results.data
+            .map((row: any) => {
+              // Matches the headers from your CSV image
+              const question = getColValue(row, "question");
+              const sampleIp = getColValue(row, "sample i/p");
+              const sampleOp = getColValue(row, "sample o/p");
+
+              if (!question) return null;
+
+              const generatedTitle = question.split(" ").slice(0, 4).join(" ") + "...";
+              const fullProblemStatement = `${question.trim()}\n\nExample:\nInput: ${
+                sampleIp ? sampleIp.trim() : "None"
+              }\nOutput: ${sampleOp ? sampleOp.trim() : "None"}`;
+
+              return {
+                company_id: codingForm.companyId,
+                title: generatedTitle,
+                problem_statement: fullProblemStatement,
+                boilerplate: "// Write your code here", 
+              };
+            })
+            .filter(Boolean);
+
+          if (newQuestions.length === 0) {
+            throw new Error("Could not find valid 'question' columns.");
+          }
+
+          const { data, error } = await supabase
+            .from("coding_questions")
+            .insert(newQuestions)
+            .select();
+
+          if (error) throw error;
+
+          const dbCodingQuestions: CodingQuestion[] = data.map((row: any) => ({
+            id: row.id,
+            companyId: row.company_id,
+            title: row.title,
+            problemStatement: row.problem_statement,
+            boilerplate: row.boilerplate,
+          }));
+
+          dbCodingQuestions.forEach((q) => addCodingQuestion(q));
+
+          alert(`✅ Successfully imported ${data.length} coding questions to the database!`);
+
+          if (codingFileInputRef.current) codingFileInputRef.current.value = "";
+        } catch (error: any) {
+          console.error("Upload Error:", error);
+          alert(`Failed to upload: ${error.message}`);
+        } finally {
+          setIsUploadingCodingCsv(false);
+        }
+      },
+      error: (error) => {
+        console.error("CSV Parsing Error:", error);
+        alert("Error parsing CSV. Please check the file format.");
+        setIsUploadingCodingCsv(false);
       },
     });
   };
@@ -640,7 +721,6 @@ export default function AdminCMS() {
                               </div>
                             </div>
                           )}
-                          {/* GROUP DISCUSSION SPECIFIC CONFIG (NEW) */}
                            {round.type === 'gd' && (
                              <div className="pl-9 mt-2">
                                <div className="space-y-2">
@@ -655,33 +735,55 @@ export default function AdminCMS() {
                                </div>
                              </div>
                            )}
+
+                          {/* ----- THE NEW CODING UPLOAD BUTTON IS HERE ----- */}
                           {round.type === "coding" && (
                             <div className="pl-9 mt-2">
-                              <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                                  Questions to Pull
-                                </label>
-                                <div className="flex items-center gap-3">
-                                  <input
-                                    type="number"
-                                    value={round.config?.questionCount}
-                                    onChange={(e) =>
-                                      updateRound(round.id, {
-                                        config: {
-                                          ...round.config,
-                                          questionCount: parseInt(
-                                            e.target.value,
-                                          ),
-                                        },
-                                      })
-                                    }
-                                    className="w-24 px-3 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold"
-                                  />
-                                  <p className="text-[10px] text-zinc-400">
-                                    Pulled randomly from company's private
-                                    coding bank.
-                                  </p>
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                                    Questions to Pull
+                                  </label>
+                                  <div className="flex items-center gap-3">
+                                    <input
+                                      type="number"
+                                      value={round.config?.questionCount}
+                                      onChange={(e) =>
+                                        updateRound(round.id, {
+                                          config: {
+                                            ...round.config,
+                                            questionCount: parseInt(e.target.value),
+                                          },
+                                        })
+                                      }
+                                      className="w-24 px-3 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold"
+                                    />
+                                    <p className="text-[10px] text-zinc-400">
+                                      Pulled randomly from company's private coding bank.
+                                    </p>
+                                  </div>
                                 </div>
+                                
+                                {/* New Button to Manage Coding Bank */}
+                                {isEditingCompany ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCodingForm({
+                                        ...codingForm,
+                                        companyId: isEditingCompany,
+                                      });
+                                      setIsAddingCoding(true);
+                                    }}
+                                    className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-3 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors w-fit border border-indigo-100"
+                                  >
+                                    <Database size={16} /> Manage Coding Bank & Upload CSV
+                                  </button>
+                                ) : (
+                                  <p className="text-[10px] text-orange-500 font-bold bg-orange-50 p-2 rounded-lg inline-block">
+                                    * Save this new company profile first to upload coding questions to its repository.
+                                  </p>
+                                )}
                               </div>
                             </div>
                           )}
@@ -964,12 +1066,12 @@ export default function AdminCMS() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-4xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-5xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="p-8 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
                 <div>
-                  <h3 className="text-2xl font-black text-zinc-900 tracking-tight">
-                    Coding Lab Repository
+                  <h3 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
+                    <Code className="text-emerald-500" /> Coding Lab Repository
                   </h3>
                   <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mt-1">
                     Linking to:{" "}
@@ -985,63 +1087,97 @@ export default function AdminCMS() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-8 space-y-8 flex flex-col md:flex-row gap-8">
-                {/* Left: Add Form */}
-                <form
-                  onSubmit={handleCodingSubmit}
-                  className="flex-1 space-y-5"
-                >
-                  <h4 className="text-sm font-black text-zinc-900 uppercase tracking-widest mb-4">
-                    Add Challenge
-                  </h4>
-                  <input
-                    required
-                    placeholder="Challenge Title (e.g., Two Sum)"
-                    value={codingForm.title}
-                    onChange={(e) =>
-                      setCodingForm({ ...codingForm, title: e.target.value })
-                    }
-                    className="w-full px-5 py-3 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-sm"
-                  />
-                  <textarea
-                    required
-                    placeholder="Detailed Problem Statement & Constraints..."
-                    value={codingForm.problemStatement}
-                    onChange={(e) =>
-                      setCodingForm({
-                        ...codingForm,
-                        problemStatement: e.target.value,
-                      })
-                    }
-                    className="w-full px-5 py-3 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-emerald-500 outline-none h-32 text-sm resize-none"
-                  />
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                      Initial Code (Boilerplate)
-                    </label>
+                
+                {/* LEFT COLUMN: UPLOAD & ADD FORM */}
+                <div className="flex-1 space-y-8">
+                  
+                  {/* --- HUGE, VISIBLE CSV UPLOAD BOX --- */}
+                  <div className="bg-emerald-50 border-2 border-dashed border-emerald-200 rounded-3xl p-6 text-center">
+                    <h4 className="text-sm font-black text-emerald-900 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
+                      <Upload size={16} /> Bulk Import (CSV)
+                    </h4>
+                    <p className="text-xs text-emerald-700 mb-4">
+                      Upload a CSV file with headers exactly matching: <br/> <b>question | sample i/p | sample o/p</b>
+                    </p>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      className="hidden"
+                      ref={codingFileInputRef}
+                      onChange={handleCodingCsvUpload}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => codingFileInputRef.current?.click()}
+                      disabled={isUploadingCodingCsv}
+                      className="w-full bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-70"
+                    >
+                      {isUploadingCodingCsv ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <FileText className="w-4 h-4" />
+                      )}
+                      {isUploadingCodingCsv ? "Parsing & Uploading to DB..." : "Select CSV File"}
+                    </button>
+                  </div>
+
+                  {/* Manual Entry Form */}
+                  <form onSubmit={handleCodingSubmit} className="space-y-5">
+                    <div className="flex items-center gap-2 mb-4 border-b border-zinc-100 pb-2">
+                       <h4 className="text-sm font-black text-zinc-900 uppercase tracking-widest">
+                         Or Add Manually
+                       </h4>
+                    </div>
+                    <input
+                      required
+                      placeholder="Challenge Title (e.g., Two Sum)"
+                      value={codingForm.title}
+                      onChange={(e) =>
+                        setCodingForm({ ...codingForm, title: e.target.value })
+                      }
+                      className="w-full px-5 py-3 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-sm"
+                    />
                     <textarea
                       required
-                      value={codingForm.boilerplate}
+                      placeholder="Detailed Problem Statement & Constraints..."
+                      value={codingForm.problemStatement}
                       onChange={(e) =>
                         setCodingForm({
                           ...codingForm,
-                          boilerplate: e.target.value,
+                          problemStatement: e.target.value,
                         })
                       }
-                      className="w-full px-5 py-3 rounded-2xl border border-zinc-200 bg-zinc-900 text-zinc-300 font-mono text-xs h-40 resize-none focus:ring-2 focus:ring-emerald-500 outline-none"
+                      className="w-full px-5 py-3 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-emerald-500 outline-none h-32 text-sm resize-none"
                     />
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full bg-emerald-500 text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
-                  >
-                    Push to Repository
-                  </button>
-                </form>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                        Initial Code (Boilerplate)
+                      </label>
+                      <textarea
+                        required
+                        value={codingForm.boilerplate}
+                        onChange={(e) =>
+                          setCodingForm({
+                            ...codingForm,
+                            boilerplate: e.target.value,
+                          })
+                        }
+                        className="w-full px-5 py-3 rounded-2xl border border-zinc-200 bg-zinc-900 text-zinc-300 font-mono text-xs h-40 resize-none focus:ring-2 focus:ring-emerald-500 outline-none"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full bg-zinc-900 text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-lg"
+                    >
+                      Add Single Challenge
+                    </button>
+                  </form>
+                </div>
 
                 {/* Right: Existing List */}
                 <div className="md:w-1/2 flex flex-col border-l border-zinc-100 pl-8">
                   <h4 className="text-sm font-black text-zinc-900 uppercase tracking-widest mb-6">
-                    Current Database
+                    Company Bank
                   </h4>
                   <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                     {codingBank
@@ -1055,7 +1191,7 @@ export default function AdminCMS() {
                             <p className="font-bold text-zinc-900 text-sm leading-tight">
                               {q.title}
                             </p>
-                            <p className="text-[10px] text-zinc-500 mt-1 line-clamp-2">
+                            <p className="text-[10px] text-zinc-500 mt-1 line-clamp-2 whitespace-pre-wrap">
                               {q.problemStatement}
                             </p>
                           </div>

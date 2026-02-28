@@ -72,11 +72,14 @@ export async function generateRoundFeedback(roundType: string, performanceData: 
             text: `Analyze the student's performance in the ${roundType} round.
             Performance Data: ${JSON.stringify(performanceData)}
             
-            Generate a structured response with two clear sections in Markdown:
-            1. "## What You Did": A summary of their mistakes, areas for improvement, or specific observations.
-            2. "## What Is Expected": A breakdown of the ideal industry-standard answer, logic, or behavior for this round.
-            
-            Be constructive, professional, and detailed.`,
+            Generate a structured response with two clear sections in Markdown using short bullet points:
+    ## What You Did
+    - [Summary of their mistakes, areas for improvement, or specific observations]
+    
+    ## What Is Expected
+    - [Breakdown of the ideal industry-standard answer, logic, or behavior for this round]
+    
+    Be constructive, professional, and detailed. Keep the bullet points concise. Do not include any introductory or concluding text outside of these sections.`,
           },
         ],
       },

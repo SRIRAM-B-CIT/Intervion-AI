@@ -34,7 +34,7 @@ export default function DashboardLayout() {
   // Added Group Discussion to the student navigation array
   const studentNav = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Mock Marathon', path: '/mock-marathon', icon: Briefcase },
+    { name: 'Interview Marathon', path: '/mock-marathon', icon: Briefcase },
     { name: 'Resume Analyzer', path: '/resume', icon: FileText },
     { name: 'Aptitude Test', path: '/aptitude', icon: Brain },
     { name: 'Coding Lab', path: '/coding', icon: Code },
