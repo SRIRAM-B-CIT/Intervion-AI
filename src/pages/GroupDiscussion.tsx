@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 // ==========================================
 // 1. API CONFIGURATION (GROQ)
 // ==========================================
-const GROQ_API_KEY = ""; 
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY; 
 const GROQ_MODEL = "llama-3.1-8b-instant"; 
 
 type Role = 'user' | 'ai1' | 'ai2';

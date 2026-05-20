@@ -12,5 +12,36 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// 3. Export the connected client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+type SupabaseLike = {
+  from: (table: string) => {
+    select: () => {
+      order: (column: string, options?: { ascending?: boolean }) => Promise<{ data: null; error: Error }>;
+    };
+    insert: (values: unknown) => {
+      select: () => Promise<{ data: any[]; error: Error }>;
+    };
+  };
+};
+
+const createNoopSupabase = (): SupabaseLike => ({
+  from: (_table: string) => ({
+    select: () => ({
+      order: async () => ({
+        data: null,
+        error: new Error("Supabase is not configured"),
+      }),
+    }),
+    insert: (_values: unknown) => ({
+      select: async () => ({
+        data: [],
+        error: new Error("Supabase is not configured"),
+      }),
+    }),
+  }),
+});
+
+// 3. Export a safe client. This keeps the app rendering even when Vercel env vars are missing.
+export const supabase =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : createNoopSupabase();

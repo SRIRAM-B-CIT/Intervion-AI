@@ -13,9 +13,9 @@ import { useNavigate } from 'react-router-dom';
 // ==========================================
 // API CREDENTIALS
 // ==========================================
-const JDOODLE_CLIENT_ID = "";
-const JDOODLE_CLIENT_SECRET = "";
-const GEMINI_API_KEY = ""; 
+const JDOODLE_CLIENT_ID = import.meta.env.VITE_JDOODLE_CLIENT_ID;
+const JDOODLE_CLIENT_SECRET = import.meta.env.VITE_JDOODLE_CLIENT_SECRET;
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
 
 const LANGUAGES = {
   javascript: { label: 'JavaScript', id: 'javascript', jdoodleLang: 'nodejs', versionIndex: '4' },

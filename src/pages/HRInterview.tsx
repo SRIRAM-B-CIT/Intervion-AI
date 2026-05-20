@@ -13,8 +13,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // ==========================================
 // 1. API CONFIGURATION
 // ==========================================
-const GEMINI_API_KEY = ""; 
-const GROQ_API_KEY = "";     
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;     
 
 // Job Roles for Dropdown
 const JOB_ROLES = [
