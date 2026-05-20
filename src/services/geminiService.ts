@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ResumeAnalysis } from "../store/useStore";
 
 export async function analyzeResume(fileBase64: string, mimeType: string): Promise<ResumeAnalysis> {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -61,7 +61,7 @@ export async function analyzeResume(fileBase64: string, mimeType: string): Promi
 }
 
 export async function generateRoundFeedback(roundType: string, performanceData: any): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -94,7 +94,7 @@ export async function generateHRResponse(
   chatHistory: { role: string; text: string }[],
 ): Promise<string> {
   // Using your exact existing setup
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
   // Format the history so the AI understands the back-and-forth
   const formattedHistory = chatHistory
