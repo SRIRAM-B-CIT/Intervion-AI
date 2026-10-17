@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { 
+import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart
 } from 'recharts';
-import { useAuthStore } from '../store/useStore';
-import { 
-  TrendingUp, 
-  Clock, 
+import { useAppStore, useAuthStore } from '../store/useStore';
+import { useCmsStore } from '../store/useCmsStore';
+import {
+  TrendingUp,
+  Clock,
   ArrowUpRight,
   Target,
   Zap,
@@ -20,45 +21,66 @@ import { motion } from 'framer-motion';
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
+  const { performanceHistory } = useAppStore();
+  const { companies } = useCmsStore();
 
-  // 1. DATA LOGIC: Distinguish between Demo User and New Sign-up
-  // If the name is 'Sudheesh' or 'Admin', we show the mock data.
-  // If it's a new name from Sign Up, we show the empty states.
-  const isDemoUser = user?.name === 'Sudheesh' || user?.name === 'Admin';
-  const hasHistory = isDemoUser; 
+  const userHistory = useMemo(
+    () => performanceHistory
+      .filter((record) =>
+        record.userId === (user?.id || 'local-guest') ||
+        record.userName.toLowerCase() === (user?.name || 'Guest').toLowerCase(),
+      )
+      .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()),
+    [performanceHistory, user?.id],
+  );
+  const hasHistory = userHistory.length > 0;
+
+  const getRoundType = (companyId: string, roundIndex: number) =>
+    companies.find((company) => company.id === companyId)?.workflow[roundIndex]?.type;
+
+  const averageForTypes = (types: string[]) => {
+    const matching = userHistory.filter((record) => types.includes(getRoundType(record.companyId, record.roundIndex) || ''));
+    return matching.length
+      ? Math.round(matching.reduce((sum, record) => sum + record.score, 0) / matching.length)
+      : 0;
+  };
 
   const radarData = useMemo(() => {
-    if (!hasHistory) {
-      return [
-        { subject: 'Aptitude', A: 0, fullMark: 100 },
-        { subject: 'Coding', A: 0, fullMark: 100 },
-        { subject: 'Soft Skills', A: 0, fullMark: 100 },
-        { subject: 'Resume', A: 0, fullMark: 100 },
-      ];
-    }
-    // Default values for Sign-In / Demo
     return [
-      { subject: 'Aptitude', A: 85, fullMark: 100 },
-      { subject: 'Coding', A: 45, fullMark: 100 },
-      { subject: 'Soft Skills', A: 90, fullMark: 100 },
-      { subject: 'Resume', A: 75, fullMark: 100 },
+      { subject: 'Aptitude', A: averageForTypes(['aptitude']), fullMark: 100 },
+      { subject: 'Coding', A: averageForTypes(['coding']), fullMark: 100 },
+      { subject: 'Soft Skills', A: averageForTypes(['hr', 'gd']), fullMark: 100 },
+      { subject: 'Resume', A: averageForTypes(['resume']), fullMark: 100 },
     ];
-  }, [hasHistory]);
+  }, [userHistory, companies]);
 
-  const trendData = hasHistory ? [
-    { name: 'Jan', score: 65 },
-    { name: 'Feb', score: 72 },
-    { name: 'Mar', score: 68 },
-    { name: 'Apr', score: 85 },
-    { name: 'May', score: 82 },
-    { name: 'Jun', score: 90 },
-  ] : [];
+  const sessionSummaries = useMemo(() => {
+    const grouped = new Map<string, typeof userHistory>();
+    userHistory.forEach((record) => grouped.set(record.sessionId, [...(grouped.get(record.sessionId) || []), record]));
+    return [...grouped.entries()].map(([sessionId, records]) => {
+      const company = companies.find((item) => item.id === records[0].companyId);
+      return {
+        sessionId,
+        company: company?.name || 'Company',
+        score: Math.round(records.reduce((sum, record) => sum + record.score, 0) / records.length),
+        completedRounds: new Set(records.map((record) => record.roundIndex)).size,
+        totalRounds: company?.workflow.length || records.length,
+        completedAt: records[records.length - 1].completedAt,
+      };
+    }).sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime());
+  }, [companies, userHistory]);
 
-  const pastTests = hasHistory ? [
-    { company: 'Google', score: 88, date: '2 days ago', status: 'Completed' },
-    { company: 'Amazon', score: 76, date: '1 week ago', status: 'Completed' },
-    { company: 'Microsoft', score: 92, date: '2 weeks ago', status: 'Completed' },
-  ] : [];
+  const trendData = sessionSummaries.map((session, index) => ({
+    name: `Attempt ${index + 1}`,
+    score: session.score,
+  }));
+
+  const pastTests = [...sessionSummaries].reverse().slice(0, 5).map((session) => ({
+    company: session.company,
+    score: session.score,
+    date: new Date(session.completedAt).toLocaleDateString(),
+    status: session.completedRounds >= session.totalRounds ? 'Completed' : 'In Progress',
+  }));
 
   const recommended = [
     { company: 'Netflix', difficulty: 'Hard', category: 'Backend' },
@@ -68,11 +90,11 @@ export default function StudentDashboard() {
   // 2. THEME LOGIC: Handles "Not Assessed" state for new sign-ups
   const getPerformanceTheme = (data: any[]) => {
     const avg = data.reduce((acc, curr) => acc + curr.A, 0) / data.length;
-    
+
     if (avg === 0) return { stroke: "#e4e4e7", fill: "#f4f4f5", label: "Not Assessed", color: "text-zinc-500", border: "border-zinc-200", bg: "bg-zinc-50" };
     if (avg < 50) return { stroke: "#ef4444", fill: "#ef4444", label: "Poor", color: "text-red-600", border: "border-red-100", bg: "bg-red-50" };
     if (avg <= 75) return { stroke: "#eab308", fill: "#eab308", label: "Average", color: "text-yellow-600", border: "border-yellow-100", bg: "bg-yellow-50" };
-    
+
     return { stroke: "#10b981", fill: "#10b981", label: "Excellent", color: "text-emerald-600", border: "border-emerald-100", bg: "bg-emerald-50" };
   };
 
@@ -98,7 +120,7 @@ export default function StudentDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Radar Chart */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="lg:col-span-1 bg-white p-6 rounded-[32px] border border-zinc-200 shadow-sm"
@@ -130,7 +152,7 @@ export default function StudentDashboard() {
         </motion.div>
 
         {/* Performance Trend Area Chart */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -148,14 +170,14 @@ export default function StudentDashboard() {
                 <AreaChart data={trendData}>
                   <defs>
                     <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 12 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 12 }} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
                   />
                   <Area type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorScore)" />
@@ -222,8 +244,8 @@ export default function StudentDashboard() {
         </div>
 
         {/* Recommended Mock Card */}
-        <div className="bg-[#0D121F] rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 p-8 opacity-5">
+        <div className="bg-[#0D121F] rounded-[32px] p-4 md:p-8 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5">
             <Zap className="w-40 h-40" />
           </div>
           <div className="relative z-10">

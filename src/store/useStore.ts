@@ -49,6 +49,7 @@ export interface Company {
 }
 
 export interface TestSession {
+  sessionId: string;
   companyId: string;
   currentRoundIndex: number;
   isRoundSubmitted: boolean;
@@ -57,6 +58,18 @@ export interface TestSession {
   isTerminated: boolean;
   scores: Record<string, number>;
   roundFeedback: string | null;
+}
+
+export interface PerformanceRecord {
+  id: string;
+  sessionId: string;
+  userId: string;
+  userName: string;
+  companyId: string;
+  roundIndex: number;
+  score: number;
+  feedback: string;
+  completedAt: string;
 }
 
 export type HRGender = 'male' | 'female';
@@ -77,6 +90,7 @@ interface AppState {
   hrGender: HRGender;
   hrTone: HRTone;
   resumeAnalysis: ResumeAnalysis | null;
+  performanceHistory: PerformanceRecord[];
   selectCompany: (companyId: string) => void;
   startSession: (companyId: string) => void;
   updateSession: (updates: Partial<TestSession>) => void;
@@ -89,6 +103,97 @@ interface AppState {
   setResumeAnalysis: (analysis: ResumeAnalysis) => void;
 }
 
+export const DEFAULT_MOCK_PERFORMANCE_HISTORY: PerformanceRecord[] = [
+  {
+    id: "mock-sess-1:0",
+    sessionId: "mock-sess-1",
+    userId: "test-student-4",
+    userName: "Elena Rostova",
+    companyId: "1",
+    roundIndex: 0,
+    score: 96,
+    feedback: "Exceptional ATS compatibility and strong structural layout. Relevant keywords matched well.",
+    completedAt: "2026-10-04T10:15:00.000Z",
+  },
+  {
+    id: "mock-sess-1:1",
+    sessionId: "mock-sess-1",
+    userId: "test-student-4",
+    userName: "Elena Rostova",
+    companyId: "1",
+    roundIndex: 1,
+    score: 94,
+    feedback: "High quantitative precision and rapid logical deduction. Answered all questions accurately.",
+    completedAt: "2026-10-04T10:45:00.000Z",
+  },
+  {
+    id: "mock-sess-1:2",
+    sessionId: "mock-sess-1",
+    userId: "test-student-4",
+    userName: "Elena Rostova",
+    companyId: "1",
+    roundIndex: 2,
+    score: 98,
+    feedback: "Optimal O(N) algorithmic efficiency with modular clean code style. Passed all test suites.",
+    completedAt: "2026-10-04T11:45:00.000Z",
+  },
+  {
+    id: "mock-sess-1:3",
+    sessionId: "mock-sess-1",
+    userId: "test-student-4",
+    userName: "Elena Rostova",
+    companyId: "1",
+    roundIndex: 3,
+    score: 92,
+    feedback: "Constructive collaboration, active listening, and articulated core architectural arguments persuasively.",
+    completedAt: "2026-10-04T12:05:00.000Z",
+  },
+  {
+    id: "mock-sess-1:4",
+    sessionId: "mock-sess-1",
+    userId: "test-student-4",
+    userName: "Elena Rostova",
+    companyId: "1",
+    roundIndex: 4,
+    score: 95,
+    feedback: "Exemplary behavioral alignment, high posture confidence score, and concise structured answers.",
+    completedAt: "2026-10-04T12:30:00.000Z",
+  },
+  {
+    id: "mock-sess-0:0",
+    sessionId: "mock-sess-0",
+    userId: "test-student-4",
+    userName: "Elena Rostova",
+    companyId: "2",
+    roundIndex: 0,
+    score: 88,
+    feedback: "Good initial resume structure with strong fundamentals.",
+    completedAt: "2026-10-01T09:00:00.000Z",
+  },
+  {
+    id: "mock-sess-0:1",
+    sessionId: "mock-sess-0",
+    userId: "test-student-4",
+    userName: "Elena Rostova",
+    companyId: "2",
+    roundIndex: 1,
+    score: 85,
+    feedback: "Solid performance on mathematical reasoning and analogies.",
+    completedAt: "2026-10-01T09:30:00.000Z",
+  },
+  {
+    id: "mock-sess-0:2",
+    sessionId: "mock-sess-0",
+    userId: "test-student-4",
+    userName: "Elena Rostova",
+    companyId: "2",
+    roundIndex: 2,
+    score: 90,
+    feedback: "Clean coding solution passing all test cases.",
+    completedAt: "2026-10-01T10:15:00.000Z",
+  },
+];
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
@@ -97,11 +202,13 @@ export const useAppStore = create<AppState>()(
       hrGender: 'female',
       hrTone: 'professional',
       resumeAnalysis: null,
+      performanceHistory: DEFAULT_MOCK_PERFORMANCE_HISTORY,
       
       selectCompany: (companyId) => set({ selectedCompanyId: companyId }),
       
       startSession: (companyId) => set({ 
         currentSession: { 
+          sessionId: crypto.randomUUID(),
           companyId, 
           currentRoundIndex: 0,
           isRoundSubmitted: false,
@@ -131,9 +238,24 @@ export const useAppStore = create<AppState>()(
 
       submitRound: (score, feedback) => set((state) => {
         if (!state.currentSession) return state;
+        const user = useAuthStore.getState().user;
+        const sessionId = state.currentSession.sessionId || crypto.randomUUID();
+        const recordId = `${sessionId}:${state.currentSession.currentRoundIndex}`;
+        const record: PerformanceRecord = {
+          id: recordId,
+          sessionId,
+          userId: user?.id || "local-guest",
+          userName: user?.name || "Guest",
+          companyId: state.currentSession.companyId,
+          roundIndex: state.currentSession.currentRoundIndex,
+          score: Math.max(0, Math.min(100, Math.round(score))),
+          feedback,
+          completedAt: new Date().toISOString(),
+        };
         return {
           currentSession: {
             ...state.currentSession,
+            sessionId,
             isRoundSubmitted: true,
             isFeedbackViewed: false,
             roundFeedback: feedback,
@@ -141,7 +263,11 @@ export const useAppStore = create<AppState>()(
               ...state.currentSession.scores,
               [state.currentSession.currentRoundIndex]: score
             }
-          }
+          },
+          performanceHistory: [
+            ...state.performanceHistory.filter((item) => item.id !== recordId),
+            record,
+          ].slice(-500),
         };
       }),
 

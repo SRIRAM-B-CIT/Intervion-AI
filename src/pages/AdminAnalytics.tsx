@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  Download, 
-  MoreVertical, 
+import {
+  Users,
+  Search,
+  Filter,
+  Download,
+  MoreVertical,
   ExternalLink,
   TrendingUp,
   CheckCircle2,
@@ -20,12 +20,12 @@ import {
   Brain,
   FileText
 } from 'lucide-react';
-import { 
-  Radar, 
-  RadarChart, 
-  PolarGrid, 
-  PolarAngleAxis, 
-  PolarRadiusAxis, 
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
   ResponsiveContainer,
   AreaChart,
   Area,
@@ -102,6 +102,28 @@ const mockStudents = [
       { name: 'Test 2', score: 85 },
       { name: 'Test 3', score: 92 },
     ]
+  },
+  {
+    id: '4',
+    name: 'Elena Rostova',
+    email: 'elena.rostova@example.com',
+    role: 'AI & Cloud Solutions Architect',
+    rounds: ['Resume', 'Aptitude', 'Coding', 'GD', 'HR'],
+    status: 'Completed',
+    score: 96,
+    date: '2026-10-05',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    skills: [
+      { subject: 'Aptitude', A: 94, fullMark: 100 },
+      { subject: 'Coding', A: 98, fullMark: 100 },
+      { subject: 'Soft Skills', A: 95, fullMark: 100 },
+      { subject: 'Resume', A: 96, fullMark: 100 },
+    ],
+    history: [
+      { name: 'Test 1', score: 86 },
+      { name: 'Test 2', score: 92 },
+      { name: 'Test 3', score: 96 },
+    ]
   }
 ];
 
@@ -110,7 +132,7 @@ export default function AdminAnalytics() {
   const [selectedStudent, setSelectedStudent] = useState<typeof mockStudents[0] | null>(null);
   const { companies } = useCmsStore();
 
-  const filteredStudents = mockStudents.filter(s => 
+  const filteredStudents = mockStudents.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.role.toLowerCase().includes(searchQuery.toLowerCase())
@@ -126,7 +148,7 @@ export default function AdminAnalytics() {
           { label: 'Tests Completed', value: '3,492', change: '+18%', icon: CheckCircle2, color: 'purple' },
           { label: 'Active Sessions', value: '42', change: '-3%', icon: Clock, color: 'orange' },
         ].map((stat, i) => (
-          <motion.div 
+          <motion.div
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -137,9 +159,8 @@ export default function AdminAnalytics() {
               <div className={`w-12 h-12 rounded-2xl bg-${stat.color}-50 flex items-center justify-center`}>
                 <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
               </div>
-              <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                stat.change.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
-              }`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded-lg ${stat.change.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                }`}>
                 {stat.change}
               </span>
             </div>
@@ -150,12 +171,12 @@ export default function AdminAnalytics() {
       </div>
 
       {/* Main Content */}
-      <div className="bg-white rounded-[40px] border border-zinc-200 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-sm overflow-hidden">
+        <div className="p-4 md:p-8 border-b border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search by name, email, or role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -188,7 +209,7 @@ export default function AdminAnalytics() {
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {filteredStudents.map((student) => (
-                <tr 
+                <tr
                   key={student.id}
                   onClick={() => setSelectedStudent(student)}
                   className="hover:bg-zinc-50 transition-colors cursor-pointer group"
@@ -215,22 +236,19 @@ export default function AdminAnalytics() {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                      student.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        student.status === 'Completed' ? 'bg-emerald-500' : 'bg-orange-500'
-                      }`} />
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${student.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
+                      }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${student.status === 'Completed' ? 'bg-emerald-500' : 'bg-orange-500'
+                        }`} />
                       {student.status}
                     </span>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-1.5 w-16 bg-zinc-100 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${
-                            student.score >= 80 ? 'bg-emerald-500' : student.score >= 60 ? 'bg-blue-500' : 'bg-orange-500'
-                          }`}
+                        <div
+                          className={`h-full rounded-full ${student.score >= 80 ? 'bg-emerald-500' : student.score >= 60 ? 'bg-blue-500' : 'bg-orange-500'
+                            }`}
                           style={{ width: `${student.score}%` }}
                         />
                       </div>
@@ -254,20 +272,20 @@ export default function AdminAnalytics() {
       <AnimatePresence>
         {selectedStudent && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedStudent(null)}
               className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-5xl bg-zinc-50 rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-5xl bg-zinc-50 rounded-3xl md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 bg-white border-b border-zinc-100 flex items-center justify-between">
+              <div className="p-4 md:p-8 bg-white border-b border-zinc-100 flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <img src={selectedStudent.avatar} alt="" className="w-20 h-20 rounded-[24px] border-4 border-zinc-50 shadow-lg" />
                   <div>
@@ -283,7 +301,7 @@ export default function AdminAnalytics() {
                     </div>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedStudent(null)}
                   className="p-3 hover:bg-zinc-100 rounded-full transition-all"
                 >
@@ -291,13 +309,13 @@ export default function AdminAnalytics() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="flex-1 overflow-y-auto p-4 md:p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:p-8">
                   {/* Left Column: Charts */}
                   <div className="lg:col-span-2 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:p-8">
                       {/* Skill Radar */}
-                      <div className="bg-white p-8 rounded-[32px] border border-zinc-200 shadow-sm">
+                      <div className="bg-white p-4 md:p-8 rounded-[32px] border border-zinc-200 shadow-sm">
                         <h4 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
                           <Brain className="w-5 h-5 text-emerald-500" />
                           Skill Analysis
@@ -320,7 +338,7 @@ export default function AdminAnalytics() {
                       </div>
 
                       {/* Score Trend */}
-                      <div className="bg-white p-8 rounded-[32px] border border-zinc-200 shadow-sm">
+                      <div className="bg-white p-4 md:p-8 rounded-[32px] border border-zinc-200 shadow-sm">
                         <h4 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
                           <TrendingUp className="w-5 h-5 text-blue-500" />
                           Score Progression
@@ -330,23 +348,23 @@ export default function AdminAnalytics() {
                             <AreaChart data={selectedStudent.history}>
                               <defs>
                                 <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                 </linearGradient>
                               </defs>
                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
                               <XAxis dataKey="name" hide />
                               <YAxis hide domain={[0, 100]} />
-                              <Tooltip 
+                              <Tooltip
                                 contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                               />
-                              <Area 
-                                type="monotone" 
-                                dataKey="score" 
-                                stroke="#3b82f6" 
+                              <Area
+                                type="monotone"
+                                dataKey="score"
+                                stroke="#3b82f6"
                                 strokeWidth={3}
-                                fillOpacity={1} 
-                                fill="url(#colorScore)" 
+                                fillOpacity={1}
+                                fill="url(#colorScore)"
                               />
                             </AreaChart>
                           </ResponsiveContainer>
@@ -355,7 +373,7 @@ export default function AdminAnalytics() {
                     </div>
 
                     {/* Test History */}
-                    <div className="bg-white p-8 rounded-[32px] border border-zinc-200 shadow-sm">
+                    <div className="bg-white p-4 md:p-8 rounded-[32px] border border-zinc-200 shadow-sm">
                       <h4 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-purple-500" />
                         Recent Test History
@@ -384,7 +402,7 @@ export default function AdminAnalytics() {
 
                   {/* Right Column: Info Cards */}
                   <div className="space-y-8">
-                    <div className="bg-white p-8 rounded-[32px] border border-zinc-200 shadow-sm">
+                    <div className="bg-white p-4 md:p-8 rounded-[32px] border border-zinc-200 shadow-sm">
                       <h4 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-6">Candidate Dossier</h4>
                       <div className="space-y-6">
                         <div className="flex items-center gap-4">
@@ -432,7 +450,7 @@ export default function AdminAnalytics() {
                       </div>
                     </div>
 
-                    <div className="bg-zinc-900 p-8 rounded-[32px] text-white">
+                    <div className="bg-zinc-900 p-4 md:p-8 rounded-[32px] text-white">
                       <h4 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-6">Quick Actions</h4>
                       <div className="space-y-3">
                         <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all flex items-center justify-center gap-2">

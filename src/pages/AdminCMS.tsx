@@ -230,15 +230,14 @@ export default function AdminCMS() {
               if (!question) return null;
 
               const generatedTitle = question.split(" ").slice(0, 4).join(" ") + "...";
-              const fullProblemStatement = `${question.trim()}\n\nExample:\nInput: ${
-                sampleIp ? sampleIp.trim() : "None"
-              }\nOutput: ${sampleOp ? sampleOp.trim() : "None"}`;
+              const fullProblemStatement = `${question.trim()}\n\nExample:\nInput: ${sampleIp ? sampleIp.trim() : "None"
+                }\nOutput: ${sampleOp ? sampleOp.trim() : "None"}`;
 
               return {
                 company_id: codingForm.companyId,
                 title: generatedTitle,
                 problem_statement: fullProblemStatement,
-                boilerplate: "// Write your code here", 
+                boilerplate: "// Write your code here",
               };
             })
             .filter(Boolean);
@@ -427,11 +426,10 @@ export default function AdminCMS() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all uppercase tracking-widest ${
-              activeTab === tab
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all uppercase tracking-widest ${activeTab === tab
                 ? "bg-white text-emerald-600 shadow-sm"
                 : "text-zinc-500 hover:text-zinc-700"
-            }`}
+              }`}
           >
             {tab === "companies"
               ? "Workflows"
@@ -453,7 +451,7 @@ export default function AdminCMS() {
             className="space-y-6"
           >
             {isAddingCompany || isEditingCompany ? (
-              <div className="bg-white p-8 rounded-[40px] border border-zinc-200 shadow-xl max-w-4xl mx-auto">
+              <div className="bg-white p-4 md:p-8 rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-xl max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-2xl font-black text-zinc-900">
                     {isEditingCompany ? "Edit Workflow" : "Company Profile"}
@@ -470,7 +468,7 @@ export default function AdminCMS() {
                 </div>
 
                 <form onSubmit={handleCompanySubmit} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:p-8">
                     <div className="md:col-span-1 space-y-3">
                       <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
                         Company Logo
@@ -636,26 +634,26 @@ export default function AdminCMS() {
 
                           {(round.type === "aptitude" ||
                             round.type === "coding") && (
-                            <div className="ml-9 p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center gap-4">
-                              <Target size={16} className="text-zinc-400" />
-                              <span className="text-xs font-bold text-zinc-600">
-                                Passing Cutoff:
-                              </span>
-                              <input
-                                type="number"
-                                value={round.cutoff}
-                                onChange={(e) =>
-                                  updateRound(round.id, {
-                                    cutoff: parseInt(e.target.value),
-                                  })
-                                }
-                                className="w-16 px-2 py-1 rounded-lg border border-zinc-200 text-sm font-bold"
-                              />
-                              <span className="text-xs font-bold text-zinc-400">
-                                %
-                              </span>
-                            </div>
-                          )}
+                              <div className="ml-9 p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center gap-4">
+                                <Target size={16} className="text-zinc-400" />
+                                <span className="text-xs font-bold text-zinc-600">
+                                  Passing Cutoff:
+                                </span>
+                                <input
+                                  type="number"
+                                  value={round.cutoff}
+                                  onChange={(e) =>
+                                    updateRound(round.id, {
+                                      cutoff: parseInt(e.target.value),
+                                    })
+                                  }
+                                  className="w-16 px-2 py-1 rounded-lg border border-zinc-200 text-sm font-bold"
+                                />
+                                <span className="text-xs font-bold text-zinc-400">
+                                  %
+                                </span>
+                              </div>
+                            )}
 
                           {round.type === "aptitude" && (
                             <div className="grid grid-cols-2 gap-4 pl-9 mt-2">
@@ -674,8 +672,8 @@ export default function AdminCMS() {
                                         const newTopics =
                                           currentTopics.includes(topic)
                                             ? currentTopics.filter(
-                                                (t: string) => t !== topic,
-                                              )
+                                              (t: string) => t !== topic,
+                                            )
                                             : [...currentTopics, topic];
                                         updateRound(round.id, {
                                           config: {
@@ -684,11 +682,10 @@ export default function AdminCMS() {
                                           },
                                         });
                                       }}
-                                      className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${
-                                        round.config?.topics?.includes(topic)
+                                      className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${round.config?.topics?.includes(topic)
                                           ? "bg-emerald-500 border-emerald-500 text-white"
                                           : "bg-white border-zinc-200 text-zinc-500 hover:border-emerald-500"
-                                      }`}
+                                        }`}
                                     >
                                       {topic}
                                     </button>
@@ -721,20 +718,20 @@ export default function AdminCMS() {
                               </div>
                             </div>
                           )}
-                           {round.type === 'gd' && (
-                             <div className="pl-9 mt-2">
-                               <div className="space-y-2">
-                                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Debate Topic</label>
-                                 <input 
-                                   type="text" 
-                                   placeholder="e.g. AI will replace junior developers within 5 years."
-                                   value={round.config?.topic || ''}
-                                   onChange={(e) => updateRound(round.id, { config: { ...round.config, topic: e.target.value } })}
-                                   className="w-full px-4 py-2 rounded-lg border border-zinc-200 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                                 />
-                               </div>
-                             </div>
-                           )}
+                          {round.type === 'gd' && (
+                            <div className="pl-9 mt-2">
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Debate Topic</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. AI will replace junior developers within 5 years."
+                                  value={round.config?.topic || ''}
+                                  onChange={(e) => updateRound(round.id, { config: { ...round.config, topic: e.target.value } })}
+                                  className="w-full px-4 py-2 rounded-lg border border-zinc-200 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                                />
+                              </div>
+                            </div>
+                          )}
 
                           {/* ----- THE NEW CODING UPLOAD BUTTON IS HERE ----- */}
                           {round.type === "coding" && (
@@ -763,7 +760,7 @@ export default function AdminCMS() {
                                     </p>
                                   </div>
                                 </div>
-                                
+
                                 {/* New Button to Manage Coding Bank */}
                                 {isEditingCompany ? (
                                   <button
@@ -985,7 +982,7 @@ export default function AdminCMS() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white p-8 rounded-[40px] border border-zinc-200 shadow-sm max-w-2xl"
+            className="bg-white p-4 md:p-8 rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-sm max-w-2xl"
           >
             <h3 className="text-xl font-black text-zinc-900 mb-8 flex items-center gap-3">
               <MessageSquare className="text-emerald-500" /> HR Interview
@@ -1002,11 +999,10 @@ export default function AdminCMS() {
                     <button
                       key={gender}
                       onClick={() => setHRSettings(gender, hrTone)}
-                      className={`flex-1 py-4 rounded-2xl border-2 transition-all font-black uppercase tracking-widest text-xs ${
-                        hrGender === gender
+                      className={`flex-1 py-4 rounded-2xl border-2 transition-all font-black uppercase tracking-widest text-xs ${hrGender === gender
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-lg shadow-emerald-500/10"
                           : "border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-zinc-200"
-                      }`}
+                        }`}
                     >
                       {gender}
                     </button>
@@ -1024,11 +1020,10 @@ export default function AdminCMS() {
                       <button
                         key={tone}
                         onClick={() => setHRSettings(hrGender, tone)}
-                        className={`py-4 rounded-2xl border-2 transition-all font-black uppercase tracking-widest text-xs ${
-                          hrTone === tone
+                        className={`py-4 rounded-2xl border-2 transition-all font-black uppercase tracking-widest text-xs ${hrTone === tone
                             ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-lg shadow-emerald-500/10"
                             : "border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-zinc-200"
-                        }`}
+                          }`}
                       >
                         {tone}
                       </button>
@@ -1066,9 +1061,9 @@ export default function AdminCMS() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-5xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-5xl bg-white rounded-3xl md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+              <div className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
                 <div>
                   <h3 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
                     <Code className="text-emerald-500" /> Coding Lab Repository
@@ -1086,18 +1081,18 @@ export default function AdminCMS() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 flex flex-col md:flex-row gap-8">
-                
+              <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 flex flex-col md:flex-row gap-4 md:p-8">
+
                 {/* LEFT COLUMN: UPLOAD & ADD FORM */}
                 <div className="flex-1 space-y-8">
-                  
+
                   {/* --- HUGE, VISIBLE CSV UPLOAD BOX --- */}
                   <div className="bg-emerald-50 border-2 border-dashed border-emerald-200 rounded-3xl p-6 text-center">
                     <h4 className="text-sm font-black text-emerald-900 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
                       <Upload size={16} /> Bulk Import (CSV)
                     </h4>
                     <p className="text-xs text-emerald-700 mb-4">
-                      Upload a CSV file with headers exactly matching: <br/> <b>question | sample i/p | sample o/p</b>
+                      Upload a CSV file with headers exactly matching: <br /> <b>question | sample i/p | sample o/p</b>
                     </p>
                     <input
                       type="file"
@@ -1124,9 +1119,9 @@ export default function AdminCMS() {
                   {/* Manual Entry Form */}
                   <form onSubmit={handleCodingSubmit} className="space-y-5">
                     <div className="flex items-center gap-2 mb-4 border-b border-zinc-100 pb-2">
-                       <h4 className="text-sm font-black text-zinc-900 uppercase tracking-widest">
-                         Or Add Manually
-                       </h4>
+                      <h4 className="text-sm font-black text-zinc-900 uppercase tracking-widest">
+                        Or Add Manually
+                      </h4>
                     </div>
                     <input
                       required
@@ -1206,13 +1201,13 @@ export default function AdminCMS() {
                     {codingBank.filter(
                       (q) => q.companyId === codingForm.companyId,
                     ).length === 0 && (
-                      <div className="text-center py-10 bg-zinc-50 rounded-3xl border border-zinc-100 border-dashed">
-                        <Code className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
-                        <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest">
-                          No challenges yet
-                        </p>
-                      </div>
-                    )}
+                        <div className="text-center py-10 bg-zinc-50 rounded-3xl border border-zinc-100 border-dashed">
+                          <Code className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
+                          <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest">
+                            No challenges yet
+                          </p>
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Brain, Clock, ChevronRight, ChevronLeft, CheckCircle2, 
+import {
+  Brain, Clock, ChevronRight, ChevronLeft, CheckCircle2,
   AlertCircle, Loader2, Timer, Target, Info, XCircle, Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,16 +24,132 @@ const DUMMY_QUESTIONS: AptitudeQuestion[] = [
   { id: 'd10', qn: '10', question: 'If x + y = 10 and x - y = 4, what is the value of x * y?', options: ['21', '24', '16', '25'], answer: '21', topic: 'Algebra' },
 ];
 
+// ==========================================
+// Groq Aptitude Question Generation
+// ==========================================
+const WORKING_GROQ_MODELS = [
+  "qwen/qwen3.8-27b",
+  "openai/gpt-oss-120b",
+  "openai/gpt-oss-20b",
+  "allam-2-7b",
+];
+
+async function callGroq(systemPrompt: string, userMessage: string): Promise<string> {
+  const apiKey =
+    (import.meta.env.VITE_GROQ_API_KEY as string | undefined) || "";
+  if (!apiKey) throw new Error("VITE_GROQ_API_KEY is missing");
+
+  let lastError: unknown = null;
+  for (const model of WORKING_GROQ_MODELS) {
+    try {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.7,
+          max_completion_tokens: 2048,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Groq API error (${response.status}) on ${model}: ${errorBody}`);
+      }
+      const data = await response.json();
+      const content = data?.choices?.[0]?.message?.content?.trim();
+      if (content) {
+        return content;
+      }
+    } catch (err) {
+      console.warn(`Aptitude model ${model} failed, trying next:`, err);
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("All Groq models failed for aptitude generation");
+}
+
+async function generateAptitudeQuestions(params: {
+  topics: string[];
+  questionCount: number;
+  companyName?: string;
+}): Promise<AptitudeQuestion[]> {
+  const { topics, questionCount, companyName } = params;
+
+  const topicChoices = Array.isArray(topics) && topics.length > 0 ? topics : ["General"];
+  const topicHint = topicChoices.join(", ");
+
+  const systemPrompt =
+    "You are an expert aptitude test creator. Generate ONLY valid JSON.";
+
+  const userPrompt = `Generate ${questionCount} aptitude multiple-choice questions.
+
+Rules:
+- Topics to cover (guidance): ${topicHint}
+- Each question must be single-correct-answer MCQ with exactly 4 options.
+- Difficulty: intermediate.
+- Return ONLY a JSON array of ${questionCount} items.
+- Each item must match this schema exactly:
+  {
+    "id": "q1" | "q2" | ...,
+    "qn": string ("1"..),
+    "question": string,
+    "options": [string, string, string, string],
+    "answer": string (must equal one of the options exactly),
+    "topic": string (must be EXACTLY one of the provided topics array)
+  }
+- Provided topics array (topic must be one of these exact strings): ${JSON.stringify(topicChoices)}
+- Do NOT add explanations, markdown, or extra keys.`;
+
+  const raw = await callGroq(systemPrompt, userPrompt);
+  // Remove markdown code fences if the model adds them.
+  const cleaned = raw
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/gi, "")
+    .trim();
+
+  const parsed = JSON.parse(cleaned);
+  if (!Array.isArray(parsed)) throw new Error("AI did not return an array");
+
+
+  // Validate minimally & normalize ids
+  return parsed.map((q: any, idx: number) => {
+    const topic = String(q.topic ?? topics?.[idx % (topics?.length || 1)] ?? "General");
+    const options = Array.isArray(q.options) ? q.options.map(String) : [];
+    const answer = String(q.answer ?? "");
+
+    if (options.length !== 4) throw new Error("Invalid options length");
+    if (!options.includes(answer)) throw new Error("Answer not present in options");
+
+    return {
+      id: String(q.id ?? `ai_${idx + 1}`),
+      qn: String(q.qn ?? idx + 1),
+      question: String(q.question ?? ""),
+      options,
+      answer,
+      topic,
+    } as AptitudeQuestion;
+  });
+}
+
 export default function AptitudeTest() {
   const { globalAptitudeBank, companies } = useCmsStore();
   const { currentSession, submitRound } = useAppStore();
   const navigate = useNavigate();
-  
+
   const [questions, setQuestions] = useState<AptitudeQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState(0);
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [finalScore, setFinalScore] = useState({ score: 0, correct: 0 });
@@ -44,28 +160,62 @@ export default function AptitudeTest() {
   useEffect(() => {
     if (questions.length > 0) return;
 
-    let sourceBank = globalAptitudeBank && globalAptitudeBank.length > 0 ? globalAptitudeBank : DUMMY_QUESTIONS;
     let targetCount = 10;
-    let targetDuration = 15; 
-    
+    let targetDuration = 15;
     const company = companies.find(c => c.id === currentSession?.companyId);
-    
+
     if (currentSession && company && company.workflow) {
       const round = company.workflow[currentSession.currentRoundIndex || 0];
       if (round && round.type === 'aptitude') {
-        const topics = round.config?.topics || [];
         targetCount = round.config?.questionCount || 10;
         targetDuration = round.duration || 15;
-        
-        let filtered = sourceBank.filter(q => topics.includes(q.topic));
-        sourceBank = filtered.length > 0 ? filtered : sourceBank;
       }
     }
 
-    const shuffled = [...sourceBank].sort(() => 0.5 - Math.random());
-    setQuestions(shuffled.slice(0, targetCount));
-    setTimeLeft(targetDuration * 60);
+    const loadQuestions = async (): Promise<void> => {
+      try {
+        setQuestions([]);
 
+        let topics: string[] = [];
+
+        if (currentSession && company && company.workflow) {
+          const round = company.workflow[currentSession.currentRoundIndex || 0];
+
+          if (round && round.type === "aptitude") {
+            topics = round.config?.topics || [];
+          }
+        }
+
+        console.log("Generating AI Questions...");
+        console.log("Topics:", topics);
+
+        const generated = await generateAptitudeQuestions({
+          topics,
+          questionCount: targetCount,
+          companyName: company?.name,
+        });
+
+        console.log("Generated:", generated);
+
+        setQuestions(generated);
+        setTimeLeft(targetDuration * 60);
+      } catch (err) {
+        console.error("Groq Failed:", err);
+
+        // fallback
+        if (globalAptitudeBank.length > 0) {
+          const shuffled = [...globalAptitudeBank].sort(() => Math.random() - 0.5);
+          setQuestions(shuffled.slice(0, targetCount));
+        } else {
+          const shuffled = [...DUMMY_QUESTIONS].sort(() => Math.random() - 0.5);
+          setQuestions(shuffled.slice(0, targetCount));
+        }
+
+        setTimeLeft(targetDuration * 60);
+      }
+    };
+
+    loadQuestions();
   }, [currentSession?.companyId, currentSession?.currentRoundIndex, companies, globalAptitudeBank, questions.length]);
 
   // Timer Logic
@@ -74,7 +224,7 @@ export default function AptitudeTest() {
       const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
       return () => clearInterval(timer);
     } else if (timeLeft === 0 && questions.length > 0 && !isSubmitting && !isFinished) {
-      handleSubmit(); 
+      handleSubmit();
     }
   }, [timeLeft, questions.length, isFinished, isSubmitting]);
 
@@ -102,11 +252,11 @@ export default function AptitudeTest() {
 
       const score = Math.round((correctCount / questions.length) * 100);
       setFinalScore({ score, correct: correctCount });
-      
+
       // Submit score to global store but NO AI feedback text
       const genericFeedback = `Aptitude Test Completed. Score: ${score}%. Passed: ${score >= targetCutoff}`;
       submitRound(score, genericFeedback);
-      
+
       setIsFinished(true);
     } catch (error) {
       console.error('Aptitude submission failed:', error);
@@ -119,7 +269,7 @@ export default function AptitudeTest() {
   // Loading State
   if (questions.length === 0) {
     return (
-      <div className="h-[400px] flex flex-col items-center justify-center space-y-4 bg-white rounded-[40px] border border-zinc-200">
+      <div className="h-[400px] flex flex-col items-center justify-center space-y-4 bg-white rounded-3xl md:rounded-[40px] border border-zinc-200">
         <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
         <p className="text-zinc-500 font-medium">Preparing your aptitude questions...</p>
       </div>
@@ -135,14 +285,14 @@ export default function AptitudeTest() {
     return (
       <div className="max-w-4xl mx-auto space-y-8 p-4">
         {/* Score Header */}
-        <div className="bg-white p-10 rounded-[40px] border border-zinc-200 shadow-sm text-center">
+        <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-sm text-center">
           <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center mb-6 border-4 ${passed ? 'bg-emerald-50 border-emerald-100 text-emerald-500' : 'bg-red-50 border-red-100 text-red-500'}`}>
             <Trophy size={40} />
           </div>
           <h2 className="text-4xl font-black text-zinc-900 tracking-tight mb-2">Test Completed</h2>
           <p className="text-zinc-500 font-medium mb-8">Here is the review of your answers.</p>
-          
-          <div className="flex items-center justify-center gap-12">
+
+          <div className="flex items-center justify-center gap-6 md:p-12">
             <div className="text-center">
               <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Final Score</p>
               <p className={`text-5xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{finalScore.score}%</p>
@@ -188,7 +338,7 @@ export default function AptitudeTest() {
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Q{idx + 1} • {q.topic}</span>
                     <p className="text-zinc-900 font-bold mt-1 leading-relaxed">{q.question}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-100">
                       <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Your Answer</span>
@@ -207,7 +357,7 @@ export default function AptitudeTest() {
           })}
         </div>
 
-        <button 
+        <button
           onClick={() => navigate('/mock-marathon')}
           className="w-full bg-zinc-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-zinc-800 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"
         >
@@ -240,9 +390,8 @@ export default function AptitudeTest() {
         </div>
 
         <div className="flex items-center gap-6">
-          <div className={`flex items-center gap-2 px-5 py-3 rounded-2xl border-2 transition-colors ${
-            timeLeft < 60 ? 'bg-red-50 border-red-200 text-red-600 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-zinc-50 border-zinc-100 text-zinc-900'
-          }`}>
+          <div className={`flex items-center gap-2 px-5 py-3 rounded-2xl border-2 transition-colors ${timeLeft < 60 ? 'bg-red-50 border-red-200 text-red-600 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-zinc-50 border-zinc-100 text-zinc-900'
+            }`}>
             <Timer className={`w-5 h-5 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
             <span className="text-lg font-mono font-bold tracking-tighter">{formatTime(timeLeft)}</span>
           </div>
@@ -251,7 +400,7 @@ export default function AptitudeTest() {
 
       {/* Progress Bar */}
       <div className="h-2 bg-zinc-100 rounded-full overflow-hidden shadow-inner">
-        <motion.div 
+        <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           className="h-full bg-emerald-500"
@@ -260,12 +409,12 @@ export default function AptitudeTest() {
 
       {/* Question Card */}
       <AnimatePresence mode="wait">
-        <motion.div 
+        <motion.div
           key={currentQuestion.id}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          className="bg-white p-10 rounded-[40px] border border-zinc-200 shadow-sm space-y-8"
+          className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-sm space-y-8"
         >
           <div className="space-y-4">
             <span className="px-3 py-1 bg-zinc-100 rounded-full text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
@@ -281,17 +430,15 @@ export default function AptitudeTest() {
               <button
                 key={i}
                 onClick={() => handleAnswer(currentQuestion.id, option)}
-                className={`p-6 rounded-3xl border-2 text-left transition-all flex items-center gap-4 group active:scale-[0.98] ${
-                  answers[currentQuestion.id] === option
+                className={`p-6 rounded-3xl border-2 text-left transition-all flex items-center gap-4 group active:scale-[0.98] ${answers[currentQuestion.id] === option
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-500/10'
                     : 'border-zinc-100 hover:border-emerald-200 bg-zinc-50/50 text-zinc-600 hover:bg-white'
-                }`}
+                  }`}
               >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 transition-colors ${
-                  answers[currentQuestion.id] === option
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 transition-colors ${answers[currentQuestion.id] === option
                     ? 'bg-emerald-500 text-white'
                     : 'bg-white border border-zinc-200 text-zinc-400 group-hover:border-emerald-200'
-                }`}>
+                  }`}>
                   {String.fromCharCode(65 + i)}
                 </div>
                 <span className="font-medium text-sm">{option}</span>
@@ -303,7 +450,7 @@ export default function AptitudeTest() {
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <button 
+        <button
           onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
           disabled={currentQuestionIndex === 0}
           className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-zinc-500 hover:bg-zinc-100 transition-all disabled:opacity-0"
@@ -313,7 +460,7 @@ export default function AptitudeTest() {
         </button>
 
         {currentQuestionIndex === questions.length - 1 ? (
-          <button 
+          <button
             onClick={handleSubmit}
             disabled={isSubmitting}
             className="bg-zinc-900 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-900/10 flex items-center gap-3 disabled:opacity-50 active:scale-95"
@@ -322,7 +469,7 @@ export default function AptitudeTest() {
             Finish & Submit
           </button>
         ) : (
-          <button 
+          <button
             onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
             className="bg-emerald-500 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 active:scale-95"
           >
@@ -333,7 +480,7 @@ export default function AptitudeTest() {
       </div>
 
       {/* Footer Info */}
-      <div className="flex items-center justify-center gap-8 pt-4">
+      <div className="flex items-center justify-center gap-4 md:p-8 pt-4">
         <div className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
           <Info className="w-4 h-4 text-zinc-300" />
           Auto-saving answers

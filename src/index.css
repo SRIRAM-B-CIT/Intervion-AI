@@ -24,12 +24,15 @@
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   @apply bg-zinc-300 rounded-full hover:bg-zinc-400 transition-colors;
 }
+
 .dark ::-webkit-scrollbar-thumb {
   @apply bg-zinc-700 hover:bg-zinc-600;
 }

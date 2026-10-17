@@ -88,7 +88,7 @@ export const useCmsStore = create<CmsState>((set) => ({
     {
       id: "2",
       name: "Microsoft",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/1024px-Microsoft_logo.svg.png",
+      logo: "https://s3-alpha.figma.com/hub/file/2747494711/31b6ad5c-b404-4086-a685-89b1d5294f1c-cover.png",
       description: "Software, services, and hardware giant.",
       targetRole: "Fullstack Engineer",
       workflow: [

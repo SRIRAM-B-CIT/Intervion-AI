@@ -3,13 +3,13 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useStore';
 import { useCmsStore } from '../store/useCmsStore';
-import { 
-  Search, 
-  ChevronRight, 
-  CheckCircle2, 
-  Upload, 
-  Brain, 
-  Code, 
+import {
+  Search,
+  ChevronRight,
+  CheckCircle2,
+  Upload,
+  Brain,
+  Code,
   MessageSquare,
   ArrowRight,
   AlertTriangle,
@@ -18,7 +18,7 @@ import {
   Layout,
   Zap,
   Users,
-  Code2, 
+  Code2,
   AlertCircle // <-- Added missing icons here
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,7 +43,7 @@ const BeautifulFeedback = ({ rawText }: { rawText: string }) => {
   // Safe bold text formatter
   const formatBoldText = (text: string) => {
     const parts = text.split(/\*\*(.*?)\*\*/g);
-    return parts.map((part, i) => 
+    return parts.map((part, i) =>
       i % 2 === 1 ? <strong key={i} className="font-black text-inherit">{part}</strong> : <span key={i}>{part}</span>
     );
   };
@@ -52,7 +52,7 @@ const BeautifulFeedback = ({ rawText }: { rawText: string }) => {
     <div className="space-y-8 w-full text-left mt-6">
       {blocks.map((block, index) => {
         const lines = block.split('\n').map(l => l.trim()).filter(l => l !== '');
-        
+
         let title = '';
         let subtitle = '';
         let didSection: string[] = [];
@@ -69,7 +69,7 @@ const BeautifulFeedback = ({ rawText }: { rawText: string }) => {
             subtitle = line.replace(/\*\*/g, '');
             return;
           }
-          
+
           if (line.toLowerCase().includes('what you did')) {
             currentMode = 'did';
             return;
@@ -85,13 +85,13 @@ const BeautifulFeedback = ({ rawText }: { rawText: string }) => {
           if (currentMode === 'did') didSection.push(cleanLine);
           else if (currentMode === 'expected') expectedSection.push(cleanLine);
           else if (!title && !line.includes('What You Did')) {
-            title = cleanLine; 
+            title = cleanLine;
           }
         });
 
         return (
           <div key={index} className="bg-white rounded-[32px] border border-zinc-200 shadow-sm overflow-hidden">
-            
+
             {/* Header (Title & Score) */}
             {(title || subtitle) && (
               <div className="bg-zinc-50 border-b border-zinc-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -107,12 +107,12 @@ const BeautifulFeedback = ({ rawText }: { rawText: string }) => {
               </div>
             )}
 
-            <div className="p-6 md:p-8 space-y-6">
+            <div className="p-6 md:p-4 md:p-8 space-y-6">
               {/* RED BOX: Mistakes & Observations */}
               {didSection.length > 0 && (
                 <div className="bg-red-50 border border-red-100 rounded-[24px] p-6">
                   <h5 className="text-red-600 font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
-                    <AlertCircle size={16} /> What You Did 
+                    <AlertCircle size={16} /> What You Did
                   </h5>
                   <ul className="space-y-3">
                     {didSection.map((point, i) => (
@@ -164,7 +164,7 @@ export default function MockMarathon() {
   const selectedCompany = companies.find(c => c.id === currentSession?.companyId);
   const currentRound = selectedCompany?.workflow[currentSession?.currentRoundIndex || 0];
 
-  const filteredCompanies = companies.filter(c => 
+  const filteredCompanies = companies.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -179,22 +179,22 @@ export default function MockMarathon() {
         <div className="space-y-6">
           <div className="relative max-w-2xl mx-auto">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search for a company (e.g. Google, Microsoft)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-4 rounded-2xl border border-zinc-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-lg shadow-sm font-medium outline-none"
             />
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCompanies.map((company) => (
               <motion.button
                 key={company.id}
                 whileHover={{ y: -4 }}
                 onClick={() => startSession(company.id)}
-                className="bg-white p-8 rounded-[32px] border border-zinc-200 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all text-left group relative overflow-hidden"
+                className="bg-white p-4 md:p-8 rounded-[32px] border border-zinc-200 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all text-left group relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                   <Building2 className="w-24 h-24" />
@@ -225,7 +225,7 @@ export default function MockMarathon() {
           <h2 className="text-3xl font-black text-zinc-900 tracking-tight">Marathon Terminated</h2>
           <p className="text-zinc-500 font-medium">Multiple security violations detected. Your session has been automatically closed for integrity reasons.</p>
         </div>
-        <button 
+        <button
           onClick={resetSession}
           className="bg-zinc-900 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-900/10 active:scale-95"
         >
@@ -239,7 +239,7 @@ export default function MockMarathon() {
     if (currentSession.isRoundSubmitted && !currentSession.isFeedbackViewed) {
       return (
         <div className="max-w-4xl mx-auto space-y-8">
-          <div className="bg-white p-10 rounded-[40px] border border-zinc-200 shadow-sm space-y-8">
+          <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-sm space-y-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center">
@@ -257,11 +257,11 @@ export default function MockMarathon() {
             </div>
 
             {/* This is where the Beautiful Feedback Component is used */}
-            <div className="bg-zinc-50/80 p-8 rounded-[32px] border border-zinc-100 shadow-inner">
+            <div className="bg-zinc-50/80 p-4 md:p-8 rounded-[32px] border border-zinc-100 shadow-inner">
               <BeautifulFeedback rawText={currentSession.roundFeedback || ''} />
             </div>
 
-            <button 
+            <button
               onClick={viewFeedback}
               className="w-full bg-zinc-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-zinc-800 transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-900/10 active:scale-95"
             >
@@ -275,7 +275,7 @@ export default function MockMarathon() {
 
     if (currentSession.isRoundSubmitted && currentSession.isFeedbackViewed) {
       const isLastRound = currentSession.currentRoundIndex === (selectedCompany?.workflow.length || 0) - 1;
-      
+
       if (isLastRound) {
         return (
           <div className="max-w-2xl mx-auto text-center space-y-8 py-20">
@@ -298,7 +298,7 @@ export default function MockMarathon() {
                 <p className="text-3xl font-black text-zinc-900">{selectedCompany?.workflow.length}</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={resetSession}
               className="bg-zinc-900 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-900/10 active:scale-95"
             >
@@ -317,7 +317,7 @@ export default function MockMarathon() {
             <h3 className="text-3xl font-black text-zinc-900 tracking-tight">Ready for the next round?</h3>
             <p className="text-zinc-500 font-medium text-lg">Next up: <span className="font-bold text-emerald-600 uppercase tracking-widest">{selectedCompany?.workflow[currentSession.currentRoundIndex + 1].type}</span></p>
           </div>
-          <button 
+          <button
             onClick={nextRound}
             className="bg-emerald-500 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/20 active:scale-95"
           >
@@ -333,8 +333,8 @@ export default function MockMarathon() {
       case 'coding': return <CodingLab />;
       case 'hr': return <HRInterview />;
       case 'aptitude': return <AptitudeTest />;
-      case 'gd': return <GroupDiscussion />; 
-      
+      case 'gd': return <GroupDiscussion />;
+
       default:
         return (
           <div className="text-center py-20">
@@ -365,7 +365,7 @@ export default function MockMarathon() {
               <span className="text-[10px] font-black uppercase tracking-widest">Warning {currentSession.warnings}/3</span>
             </div>
           )}
-          <button 
+          <button
             onClick={() => {
               if (confirm('Are you sure you want to quit? Your progress will be reset.')) {
                 resetSession();
@@ -385,20 +385,20 @@ export default function MockMarathon() {
           {selectedCompany?.workflow.map((round, idx) => {
             const isCompleted = currentSession.currentRoundIndex > idx;
             const isActive = currentSession.currentRoundIndex === idx;
-            
-            const Icon = round.type === 'resume' ? Upload : 
-                         round.type === 'aptitude' ? Brain :
-                         round.type === 'coding' ? Code :
-                         round.type === 'hr' ? MessageSquare : 
-                         round.type === 'gd' ? Users : Layout; 
+
+            const Icon = round.type === 'resume' ? Upload :
+              round.type === 'aptitude' ? Brain :
+                round.type === 'coding' ? Code :
+                  round.type === 'hr' ? MessageSquare :
+                    round.type === 'gd' ? Users : Layout;
 
             return (
               <div key={round.id} className="flex flex-col items-center gap-4 bg-[#f8fafc] px-2 md:px-4">
                 <div className={cn(
                   "w-14 h-14 rounded-full flex items-center justify-center border-[3px] transition-all relative z-10",
                   isCompleted ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20" :
-                  isActive ? "bg-white border-emerald-500 text-emerald-600 shadow-xl shadow-emerald-500/20 scale-110" :
-                  "bg-white border-zinc-200 text-zinc-300"
+                    isActive ? "bg-white border-emerald-500 text-emerald-600 shadow-xl shadow-emerald-500/20 scale-110" :
+                      "bg-white border-zinc-200 text-zinc-300"
                 )}>
                   {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
                 </div>
@@ -415,7 +415,7 @@ export default function MockMarathon() {
       </div>
 
       {/* Content Area */}
-      <div className="bg-white border border-zinc-200 shadow-sm p-2 md:p-8 rounded-[40px] min-h-[600px] relative overflow-hidden">
+      <div className="bg-white border border-zinc-200 shadow-sm p-2 md:p-4 md:p-8 rounded-3xl md:rounded-[40px] min-h-[600px] relative overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${currentSession.currentRoundIndex}-${currentSession.isRoundSubmitted}`}

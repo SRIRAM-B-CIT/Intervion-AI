@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { 
-  FileText, 
-  Upload, 
-  Search, 
-  CheckCircle2, 
-  AlertCircle, 
-  Zap, 
+import {
+  FileText,
+  Upload,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Zap,
   ChevronRight,
   Target,
   BarChart3,
@@ -95,10 +95,10 @@ export default function ResumeAnalyzer() {
       </div>
 
       {!resumeAnalysis && !isAnalyzing ? (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-16 rounded-[40px] border-2 border-dashed border-zinc-200 text-center space-y-8 shadow-sm hover:border-emerald-500/50 transition-colors group"
+          className="bg-white p-16 rounded-3xl md:rounded-[40px] border-2 border-dashed border-zinc-200 text-center space-y-8 shadow-sm hover:border-emerald-500/50 transition-colors group"
         >
           <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
             <Upload className="w-12 h-12 text-emerald-600" />
@@ -109,16 +109,16 @@ export default function ResumeAnalyzer() {
               Supports PDF, DOCX, and Images. Your data is processed securely by our Resume AI.
             </p>
           </div>
-          
+
           <div className="flex flex-col items-center gap-4">
-            <input 
-              type="file" 
+            <input
+              type="file"
               ref={fileInputRef}
               onChange={handleFileSelect}
               className="hidden"
               accept=".pdf,.docx,.jpg,.jpeg,.png"
             />
-            <button 
+            <button
               onClick={() => fileInputRef.current?.click()}
               className="bg-zinc-900 text-white px-10 py-4 rounded-2xl font-bold hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-900/10 flex items-center gap-2"
             >
@@ -134,10 +134,10 @@ export default function ResumeAnalyzer() {
           </div>
         </motion.div>
       ) : isAnalyzing ? (
-        <div className="bg-white p-16 rounded-[40px] border border-zinc-200 text-center space-y-8 shadow-sm">
+        <div className="bg-white p-16 rounded-3xl md:rounded-[40px] border border-zinc-200 text-center space-y-8 shadow-sm">
           <div className="relative w-32 h-32 mx-auto">
             <div className="absolute inset-0 rounded-full border-4 border-zinc-100" />
-            <motion.div 
+            <motion.div
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
               className="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-transparent"
@@ -151,7 +151,7 @@ export default function ResumeAnalyzer() {
             <p className="text-zinc-500">Extracting semantic meaning and calculating ATS compatibility.</p>
           </div>
           <div className="max-w-md mx-auto h-2 bg-zinc-100 rounded-full overflow-hidden">
-            <motion.div 
+            <motion.div
               initial={{ width: 0 }}
               animate={{ width: '100%' }}
               transition={{ duration: 15 }}
@@ -160,15 +160,15 @@ export default function ResumeAnalyzer() {
           </div>
         </div>
       ) : (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+          className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:p-8"
         >
           {/* Left Column: Scores & Summary */}
           <div className="lg:col-span-4 space-y-8">
-            <div className="bg-zinc-900 rounded-[40px] p-8 text-white shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-10">
+            <div className="bg-zinc-900 rounded-3xl md:rounded-[40px] p-4 md:p-8 text-white shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10">
                 <Zap className="w-40 h-40" />
               </div>
               <h3 className="text-xl font-bold mb-8">ATS Compatibility</h3>
@@ -215,7 +215,7 @@ export default function ResumeAnalyzer() {
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-[40px] border border-zinc-200 shadow-sm">
+            <div className="bg-white p-4 md:p-8 rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-sm">
               <h3 className="text-lg font-bold text-zinc-900 mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-zinc-400" />
                 Professional Summary
@@ -228,8 +228,8 @@ export default function ResumeAnalyzer() {
 
           {/* Right Column: Detailed Feedback */}
           <div className="lg:col-span-8 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-white p-8 rounded-[40px] border border-zinc-200 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:p-8">
+              <div className="bg-white p-4 md:p-8 rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-sm">
                 <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                   Top Identified Skills
@@ -243,7 +243,7 @@ export default function ResumeAnalyzer() {
                 </div>
               </div>
 
-              <div className="bg-white p-8 rounded-[40px] border border-zinc-200 shadow-sm">
+              <div className="bg-white p-4 md:p-8 rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-sm">
                 <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-orange-500" />
                   Missing Keywords
@@ -258,7 +258,7 @@ export default function ResumeAnalyzer() {
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-[40px] border border-zinc-200 shadow-sm">
+            <div className="bg-white p-4 md:p-8 rounded-3xl md:rounded-[40px] border border-zinc-200 shadow-sm">
               <h3 className="text-lg font-bold text-zinc-900 mb-6 flex items-center gap-2">
                 <ListChecks className="w-5 h-5 text-blue-500" />
                 Recommended Action Items
@@ -277,7 +277,7 @@ export default function ResumeAnalyzer() {
 
             <div className="flex gap-4">
               {currentSession ? (
-                <button 
+                <button
                   onClick={handleSubmitAnalysis}
                   disabled={isSubmitting}
                   className="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50"
@@ -286,7 +286,7 @@ export default function ResumeAnalyzer() {
                   Submit Analysis & Continue
                 </button>
               ) : (
-                <button 
+                <button
                   onClick={handleReset}
                   className="flex-1 bg-zinc-900 text-white py-4 rounded-2xl font-bold hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"
                 >
